@@ -1,3 +1,4 @@
+import pandas as pd
 import streamlit as st
 import psycopg2
 
@@ -91,6 +92,20 @@ class Billing:
         except (Exception, psycopg2.Error) as error:
             st.error("Failed to delete record from Purchase table: " + str(error))
 
+    def show_all_purchase(self):
+        try:
+            cursor = self.connection.cursor()
+            cursor.execute("""SELECT * FROM Purchase""")
+            purchase_records = cursor.fetchall()
+            if len(purchase_records) > 0:
+                return purchase_records
+            else:
+                st.info("No records found in Purchase table")
+                return None
+        except (Exception, psycopg2.Error) as error:
+            st.error("Failed to fetch records from Purchase table: " + str(error))
+            return None
+
 
 # Streamlit UI for Billing Management:
 def main_billing():
@@ -98,7 +113,7 @@ def main_billing():
     try:
         billing = Billing(DatabaseConnection("billing", "postgres", "admin", "localhost", "5432").connect())
         if billing.connection is not None:
-            billing_menu = st.selectbox("Billing Menu", ["Insert", "Update", "Delete"], key="billing_menu", help="Select the operation you want to perform on the Purchase table")
+            billing_menu = st.selectbox("Billing Menu", ["Insert", "Show All", "Update", "Delete"], key="billing_menu", help="Select the operation you want to perform on the Purchase table")
 
             # Insert New Purchase Record:
             if billing_menu == "Insert":
@@ -124,6 +139,19 @@ def main_billing():
                                                     total, discount, cgst, sgst, igst, purchase_date, item)
                     except Exception as e:
                         st.error("Failed to insert record into Purchase table: " + str(e))
+
+            # Show All Purchase Records:
+            elif billing_menu == "Show All":
+                st.subheader("Show All Purchase Records")
+                try:
+                    purchase_records = billing.show_all_purchase()
+                    if purchase_records is not None:
+                        columns = ["Purchase ID", "Supplier ID", "GSTIN Number", "Product ID", "Quantity", "Unit Price",
+                                      "Total", "Discount", "CGST", "SGST", "IGST", "Purchase Date", "Item"]
+                        df = pd.DataFrame(purchase_records, columns=columns)
+                        st.dataframe(df)
+                except Exception as e:
+                    st.error("Failed to fetch records from Purchase table: " + str(e))
 
             # Update Existing Purchase Record:
             elif billing_menu == "Update":

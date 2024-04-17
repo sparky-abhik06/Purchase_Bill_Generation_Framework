@@ -1,5 +1,5 @@
 import re
-
+import pandas as pd
 import streamlit as st
 import psycopg2
 import logging
@@ -56,13 +56,12 @@ class Supplier:
     def __init__(self, connection):
         self.connection = connection
 
-    def insert_supplier(self, supplier_id: int, supplier_name: str, landline_no: str, email: str, country_code: str,
-                        mobile_no: str, address: str, city: str, state_province: str, country: str, postal_code: str,
-                        gstin_number: str):
+    def insert_supplier(self, supplier_id: int, supplier_name: str, landline_no: str, email: str, mobile_no: str,
+                        address: str, city: str, state_province: str, country: str, postal_code: str, gstin_number: str):
         try:
             cursor = self.connection.cursor()
             postgres_insert_query = """INSERT INTO Supplier (supplier_id, supplier_name, landline_no, email, country_code, mobile_no, address, city, state_province, country, postal_code, gstin_number) VALUES (%x,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
-            record_to_insert = (supplier_id, supplier_name, landline_no, email, country_code, mobile_no, address, city,
+            record_to_insert = (supplier_id, supplier_name, landline_no, email, mobile_no, address, city,
                                 state_province, country, postal_code, gstin_number)
             cursor.execute(postgres_insert_query, record_to_insert)
             self.connection.commit()
@@ -71,15 +70,13 @@ class Supplier:
         except (Exception, psycopg2.Error) as error:
             st.error("Failed to insert record into Supplier table: " + str(error))
 
-    def update_supplier(self, supplier_id: int, supplier_name: str, landline_no: str, email: str, country_code: str,
-                        mobile_no: str, address: str, city: str, state_province: str, country: str, postal_code: int,
-                        gstin_number: str):
+    def update_supplier(self, supplier_id: int, supplier_name: str, landline_no: str, email: str, mobile_no: str,
+                        address: str, city: str, state_province: str, country: str, postal_code: int, gstin_number: str):
         try:
             cursor = self.connection.cursor()
             postgres_update_query = """UPDATE Supplier SET supplier_name = %s, landline_no = %s, email = %s, country_code = %s, mobile_no = %s, address = %s, city = %s, state_province = %s, country = %s, postal_code = %s, gstin_number = %s WHERE supplier_id = %x"""
-            record_to_update = (
-            supplier_name, landline_no, email, country_code, mobile_no, address, city, state_province,
-            country, postal_code, gstin_number, supplier_id)
+            record_to_update = (supplier_name, landline_no, email, mobile_no, address, city, state_province,
+                                country, postal_code, gstin_number, supplier_id)
             cursor.execute(postgres_update_query, record_to_update)
             self.connection.commit()
             count = cursor.rowcount
@@ -98,6 +95,42 @@ class Supplier:
         except (Exception, psycopg2.Error) as error:
             st.error("Failed to delete record from Supplier table: " + str(error))
 
+    def show_all_suppliers(self):
+        try:
+            cursor = self.connection.cursor()
+            cursor.execute("""SELECT * FROM Supplier""")
+            suppliers = cursor.fetchall()
+            if len(suppliers) > 0:
+                return suppliers
+            else:
+                st.info("No records found in the Supplier table")
+                return None
+        except (Exception, psycopg2.Error) as error:
+            st.error("Failed to fetch records from Supplier table: " + str(error))
+            return None
+
+    def search_supplier(self, **kwargs):
+        try:
+            cursor = self.connection.cursor()
+            query = """SELECT * FROM Supplier WHERE """
+            conditions = []
+            values = []
+            for key, value in kwargs.items():
+                if value is not None and value != "":
+                    conditions.append(f"{key} = %s")
+                    values.append(value)
+            query += " AND ".join(conditions)
+            cursor.execute(query, tuple(values))
+            supplier = cursor.fetchall()
+            if len(supplier) > 0:
+                return supplier
+            else:
+                st.info("No supplier found with the given search criteria")
+                return None
+        except (Exception, psycopg2.Error) as error:
+            st.error("Failed to fetch records from Supplier table: " + str(error))
+            return None
+
 
 # Streamlit UI for Supplier Management:
 def main_supplier():
@@ -105,7 +138,7 @@ def main_supplier():
     try:
         supplier = Supplier(DatabaseConnection("postgres", "postgres", "password", "localhost", "5432").connect())
         if supplier.connection is not None:
-            supplier_menu = st.selectbox("Supplier Menu", ["Insert", "Update", "Delete"], key="supplier_menu", help="Select the operation you want to perform on the Supplier table")
+            supplier_menu = st.selectbox("Supplier Menu", ["Insert", "Show All", "Search", "Update", "Delete"], key="supplier_menu", help="Select the operation you want to perform on the Supplier table")
 
             # Insert New Supplier:
             if supplier_menu == "Insert":
@@ -125,9 +158,48 @@ def main_supplier():
                 if st.button("Insert", key="insert"):
                     try:
                         if validate_inputs(supplier_id, supplier_name, landline_no, email, country_code, mobile_no, address, city, state_province, country, postal_code, gstin_number):
-                            supplier.insert_supplier(supplier_id, supplier_name, landline_no, email, country_code, mobile_no, address, city, state_province, country, postal_code, gstin_number)
+                            supplier.insert_supplier(supplier_id=supplier_id, supplier_name=supplier_name, landline_no=landline_no, email=email, mobile_no=mobile_no, address=address,
+                                                        city=city, state_province=state_province, country=country, postal_code=postal_code, gstin_number=gstin_number)
                     except Exception as e:
                         st.error("An error occurred while inserting the record: " + str(e))
+
+            # Show All Suppliers:
+            elif supplier_menu == "Show All":
+                st.subheader("All Suppliers")
+                try:
+                    suppliers = supplier.show_all_suppliers()
+                    if suppliers is not None:
+                        columns = ["Supplier ID", "Supplier Name", "Landline Number", "Email", "Mobile Number", "Address", "City", "State/Province", "Country", "Postal Code", "GSTIN Number"]
+                        df = pd.DataFrame(suppliers, columns=columns)
+                        st.dataframe(df)
+                except Exception as e:
+                    st.error("An error occurred while fetching the records: " + str(e))
+
+            # Search Supplier:
+            elif supplier_menu == "Search":
+                st.subheader("Search Supplier")
+                supplier_id = st.number_input("Supplier ID", key="supplier_id", help="Enter the unique numeric ID of the supplier to be searched")
+                supplier_name = st.text_input("Supplier Name", key="supplier_name", help="Enter the name of the supplier to be searched")
+                city = st.text_input("City", key="city", help="Enter the city of the supplier to be searched")
+                state_province = st.text_input("State/Province", key="state_province", help="Enter the state/province of the supplier to be searched")
+                country = st.text_input("Country", key="country", help="Enter the country of the supplier to be searched")
+                gstin_number = st.text_input("GSTIN Number", key="gstin_number", help="Enter the GSTIN number of the supplier to be searched")
+                if st.button("Search", key="search"):
+                    try:
+                        suppliers = supplier.search_supplier(supplier_id=supplier_id if supplier_id else None,
+                                                             supplier_name=supplier_name if supplier_name else None,
+                                                             city=city if city else None,
+                                                             state_province=state_province if state_province else None,
+                                                             country=country if country else None,
+                                                             gstin_number=gstin_number if gstin_number else None)
+                        if suppliers is not None:
+                            columns = ["Supplier ID", "Supplier Name", "Landline Number", "Email", "Mobile Number", "Address", "City", "State/Province", "Country", "Postal Code", "GSTIN Number"]
+                            df = pd.DataFrame(suppliers, columns=columns)
+                            st.dataframe(df)
+                        else:
+                            st.warning("No supplier found with the given search criteria")
+                    except Exception as e:
+                        st.error("An error occurred while searching the records: " + str(e))
 
             # Update Existing Supplier:
             elif supplier_menu == "Update":
@@ -147,7 +219,8 @@ def main_supplier():
                 if st.button("Update", key="update"):
                     try:
                         if validate_inputs(supplier_id, supplier_name, landline_no, email, country_code, mobile_no, address, city, state_province, country, postal_code, gstin_number):
-                            supplier.update_supplier(supplier_id, supplier_name, landline_no, email, country_code, mobile_no, address, city, state_province, country, postal_code, gstin_number)
+                            supplier.update_supplier(supplier_id=supplier_id, supplier_name=supplier_name, landline_no=landline_no, email=email, mobile_no=mobile_no, address=address, city=city,
+                                                     state_province=state_province, country=country, postal_code=postal_code, gstin_number=gstin_number)
                     except Exception as e:
                         st.error("An error occurred while updating the record: " + str(e))
 

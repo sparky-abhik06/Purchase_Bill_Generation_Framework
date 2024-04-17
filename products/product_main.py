@@ -1,3 +1,4 @@
+import pandas as pd
 import streamlit as st
 import psycopg2
 
@@ -70,6 +71,40 @@ class Product:
         except (Exception, psycopg2.Error) as error:
             st.error("Failed to delete record from Product table: " + str(error))
 
+    def show_all_products(self):
+        try:
+            cursor = self.connection.cursor()
+            cursor.execute("""SELECT * FROM Product""")
+            products = cursor.fetchall()
+            if len(products) > 0:
+                return products
+            else:
+                st.info("No records found in the Product table")
+                return None
+        except (Exception, psycopg2.Error) as error:
+            st.error("Failed to fetch records from Product table: " + str(error))
+
+    def search_product(self, **kwargs):
+        try:
+            cursor = self.connection.cursor()
+            search_query = """SELECT * FROM Product WHERE """
+            conditions = []
+            values = []
+            for key, value in kwargs.items():
+                if value is not None and value != "":
+                    conditions.append(f"{key} = %s")
+                    values.append(value)
+            search_query += " AND ".join(conditions)
+            cursor.execute(search_query, tuple(values))
+            products = cursor.fetchall()
+            if len(products) > 0:
+                return products
+            else:
+                st.info("No records found in the Product table")
+                return None
+        except (Exception, psycopg2.Error) as error:
+            st.error("Failed to fetch records from Product table: " + str(error))
+
 
 # Streamlit UI for Product Management:
 def main_product():
@@ -77,7 +112,7 @@ def main_product():
     try:
         product = Product(DatabaseConnection("postgres", "postgres", "password", "localhost", "5432").connect())
         if product.connection is not None:
-            product_menu = st.selectbox("Product Menu", ["Insert", "Update", "Delete"], key="product_menu", help="Select the operation you want to perform on the Product table")
+            product_menu = st.selectbox("Product Menu", ["Insert", "Show All", "Search", "Update", "Delete"], key="product_menu", help="Select the operation you want to perform on the Product table")
 
             # Insert New Product:
             if product_menu == "Insert":
@@ -94,6 +129,38 @@ def main_product():
                             product.insert_product(product_id, product_name, description, category, supplier_id, unit_price)
                     except Exception as e:
                         st.error("Failed to insert record into Product table: " + str(e))
+
+            # Show All Products:
+            elif product_menu == "Show All":
+                st.subheader("Show All Products")
+                try:
+                    products = product.show_all_products()
+                    if products is not None:
+                        columns = ["Product ID", "Product Name", "Description", "Category", "Supplier ID", "Unit Price"]
+                        df = pd.DataFrame(products, columns=columns)
+                        st.dataframe(df)
+                except Exception as e:
+                    st.error("Failed to fetch records from Product table: " + str(e))
+
+            # Search Product:
+            elif product_menu == "Search":
+                st.subheader("Search Product")
+                product_id = st.number_input("Product ID", key="product_id", help="Enter the unique numeric ID of the product you want to search")
+                product_name = st.text_input("Product Name", key="product_name", help="Enter the name of the product you want to search")
+                category = st.text_input("Category", key="category", help="Enter the category of the product you want to search")
+                supplier_id = st.number_input("Supplier ID", key="supplier_id", help="Enter the unique numeric ID of the supplier you want to search")
+                if st.button("Search", key="search"):
+                    try:
+                        products = product.search_product(product_id=product_id if product_id else None,
+                                                          product_name=product_name if product_name else None,
+                                                          category=category if category else None,
+                                                          supplier_id=supplier_id if supplier_id else None)
+                        if products is not None:
+                            columns = ["Product ID", "Product Name", "Description", "Category", "Supplier ID", "Unit Price"]
+                            df = pd.DataFrame(products, columns=columns)
+                            st.dataframe(df)
+                    except Exception as e:
+                        st.error("Failed to fetch records from Product table: " + str(e))
 
             # Update Existing Product:
             elif product_menu == "Update":
