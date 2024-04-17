@@ -8,9 +8,9 @@ from database_connection.database_connection import DatabaseConnection
 
 
 # Validating User Inputs:
-def validate_inputs(supplier_id: int, supplier_name: str, landline_no: str, email: str, country_code: str, mobile_no: str,
+def validate_inputs(supplier_id: int, supplier_name: str, landline_no: str, email: str, country_code: str,
+                    mobile_no: str,
                     address: str, city: str, state_province: str, country: str, postal_code: str, gstin_number: str):
-
     if not supplier_id:
         st.warning("Please enter the Supplier ID")
         return False
@@ -57,7 +57,8 @@ class Supplier:
         self.connection = connection
 
     def insert_supplier(self, supplier_id: int, supplier_name: str, landline_no: str, email: str, mobile_no: str,
-                        address: str, city: str, state_province: str, country: str, postal_code: str, gstin_number: str):
+                        address: str, city: str, state_province: str, country: str, postal_code: str,
+                        gstin_number: str):
         try:
             cursor = self.connection.cursor()
             postgres_insert_query = """INSERT INTO Supplier (supplier_id, supplier_name, landline_no, email, country_code, mobile_no, address, city, state_province, country, postal_code, gstin_number) VALUES (%x,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
@@ -71,7 +72,8 @@ class Supplier:
             st.error("Failed to insert record into Supplier table: " + str(error))
 
     def update_supplier(self, supplier_id: int, supplier_name: str, landline_no: str, email: str, mobile_no: str,
-                        address: str, city: str, state_province: str, country: str, postal_code: int, gstin_number: str):
+                        address: str, city: str, state_province: str, country: str, postal_code: int,
+                        gstin_number: str):
         try:
             cursor = self.connection.cursor()
             postgres_update_query = """UPDATE Supplier SET supplier_name = %s, landline_no = %s, email = %s, country_code = %s, mobile_no = %s, address = %s, city = %s, state_province = %s, country = %s, postal_code = %s, gstin_number = %s WHERE supplier_id = %x"""
@@ -138,28 +140,41 @@ def main_supplier():
     try:
         supplier = Supplier(DatabaseConnection("postgres", "postgres", "password", "localhost", "5432").connect())
         if supplier.connection is not None:
-            supplier_menu = st.selectbox("Supplier Menu", ["Insert", "Show All", "Search", "Update", "Delete"], key="supplier_menu", help="Select the operation you want to perform on the Supplier table")
+            supplier_menu = st.selectbox("Supplier Menu", ["Insert", "Show All", "Search", "Update", "Delete"],
+                                         key="supplier_menu",
+                                         help="Select the operation you want to perform on the Supplier table")
 
             # Insert New Supplier:
             if supplier_menu == "Insert":
                 st.subheader("Insert New Supplier")
-                supplier_id = st.number_input("Supplier ID", key="supplier_id", help="Enter the unique numeric ID for the new supplier")
-                supplier_name = st.text_input("Supplier Name", key="supplier_name", help="Enter the name of the new supplier")
-                landline_no = st.text_input("Landline Number", key="landline_no", help="Enter the landline number of the new supplier")
+                supplier_id = st.number_input("Supplier ID", key="supplier_id",
+                                              help="Enter the unique numeric ID for the new supplier")
+                supplier_name = st.text_input("Supplier Name", key="supplier_name",
+                                              help="Enter the name of the new supplier")
+                landline_no = st.text_input("Landline Number", key="landline_no",
+                                            help="Enter the landline number of the new supplier")
                 email = st.text_input("Email", key="email", help="Enter the email address of the new supplier")
-                country_code = st.text_input("Country Code", key="country_code", help="Enter the country code of the new supplier")
-                mobile_no = st.text_input("Mobile Number", key="mobile_no", help="Enter the mobile number of the new supplier")
+                country_code = st.text_input("Country Code", key="country_code",
+                                             help="Enter the country code of the new supplier")
+                mobile_no = st.text_input("Mobile Number", key="mobile_no",
+                                          help="Enter the mobile number of the new supplier")
                 address = st.text_input("Address", key="address", help="Enter the address of the new supplier")
                 city = st.text_input("City", key="city", help="Enter the city of the new supplier")
-                state_province = st.text_input("State/Province", key="state_province", help="Enter the state/province of the new supplier")
+                state_province = st.text_input("State/Province", key="state_province",
+                                               help="Enter the state/province of the new supplier")
                 country = st.text_input("Country", key="country", help="Enter the country of the new supplier")
-                postal_code = st.text_input("Postal Code", key="postal_code", help="Enter the postal code of the new supplier")
-                gstin_number = st.text_input("GSTIN Number", key="gstin_number", help="Enter the GSTIN number of the new supplier")
+                postal_code = st.text_input("Postal Code", key="postal_code",
+                                            help="Enter the postal code of the new supplier")
+                gstin_number = st.text_input("GSTIN Number", key="gstin_number",
+                                             help="Enter the GSTIN number of the new supplier")
                 if st.button("Insert", key="insert"):
                     try:
-                        if validate_inputs(supplier_id, supplier_name, landline_no, email, country_code, mobile_no, address, city, state_province, country, postal_code, gstin_number):
-                            supplier.insert_supplier(supplier_id=supplier_id, supplier_name=supplier_name, landline_no=landline_no, email=email, mobile_no=mobile_no, address=address,
-                                                        city=city, state_province=state_province, country=country, postal_code=postal_code, gstin_number=gstin_number)
+                        if validate_inputs(supplier_id, supplier_name, landline_no, email, country_code, mobile_no,
+                                           address, city, state_province, country, postal_code, gstin_number):
+                            supplier.insert_supplier(supplier_id=supplier_id, supplier_name=supplier_name,
+                                                     landline_no=landline_no, email=email, mobile_no=mobile_no,
+                                                     address=address, city=city, state_province=state_province,
+                                                     country=country, postal_code=postal_code, gstin_number=gstin_number)
                     except Exception as e:
                         st.error("An error occurred while inserting the record: " + str(e))
 
@@ -169,7 +184,8 @@ def main_supplier():
                 try:
                     suppliers = supplier.show_all_suppliers()
                     if suppliers is not None:
-                        columns = ["Supplier ID", "Supplier Name", "Landline Number", "Email", "Mobile Number", "Address", "City", "State/Province", "Country", "Postal Code", "GSTIN Number"]
+                        columns = ["Supplier ID", "Supplier Name", "Landline Number", "Email", "Mobile Number",
+                                   "Address", "City", "State/Province", "Country", "Postal Code", "GSTIN Number"]
                         df = pd.DataFrame(suppliers, columns=columns)
                         st.dataframe(df)
                 except Exception as e:
@@ -178,12 +194,17 @@ def main_supplier():
             # Search Supplier:
             elif supplier_menu == "Search":
                 st.subheader("Search Supplier")
-                supplier_id = st.number_input("Supplier ID", key="supplier_id", help="Enter the unique numeric ID of the supplier to be searched")
-                supplier_name = st.text_input("Supplier Name", key="supplier_name", help="Enter the name of the supplier to be searched")
+                supplier_id = st.number_input("Supplier ID", key="supplier_id",
+                                              help="Enter the unique numeric ID of the supplier to be searched")
+                supplier_name = st.text_input("Supplier Name", key="supplier_name",
+                                              help="Enter the name of the supplier to be searched")
                 city = st.text_input("City", key="city", help="Enter the city of the supplier to be searched")
-                state_province = st.text_input("State/Province", key="state_province", help="Enter the state/province of the supplier to be searched")
-                country = st.text_input("Country", key="country", help="Enter the country of the supplier to be searched")
-                gstin_number = st.text_input("GSTIN Number", key="gstin_number", help="Enter the GSTIN number of the supplier to be searched")
+                state_province = st.text_input("State/Province", key="state_province",
+                                               help="Enter the state/province of the supplier to be searched")
+                country = st.text_input("Country", key="country",
+                                        help="Enter the country of the supplier to be searched")
+                gstin_number = st.text_input("GSTIN Number", key="gstin_number",
+                                             help="Enter the GSTIN number of the supplier to be searched")
                 if st.button("Search", key="search"):
                     try:
                         suppliers = supplier.search_supplier(supplier_id=supplier_id if supplier_id else None,
@@ -193,7 +214,8 @@ def main_supplier():
                                                              country=country if country else None,
                                                              gstin_number=gstin_number if gstin_number else None)
                         if suppliers is not None:
-                            columns = ["Supplier ID", "Supplier Name", "Landline Number", "Email", "Mobile Number", "Address", "City", "State/Province", "Country", "Postal Code", "GSTIN Number"]
+                            columns = ["Supplier ID", "Supplier Name", "Landline Number", "Email", "Mobile Number",
+                                       "Address", "City", "State/Province", "Country", "Postal Code", "GSTIN Number"]
                             df = pd.DataFrame(suppliers, columns=columns)
                             st.dataframe(df)
                         else:
@@ -204,30 +226,42 @@ def main_supplier():
             # Update Existing Supplier:
             elif supplier_menu == "Update":
                 st.subheader("Update Existing Supplier")
-                supplier_id = st.number_input("Supplier ID", key="supplier_id", help="Enter the unique numeric ID of the supplier to be updated")
-                supplier_name = st.text_input("Supplier Name", key="supplier_name", help="Enter the updated name of the supplier")
-                landline_no = st.text_input("Landline Number", key="landline_no", help="Enter the updated landline number of the supplier")
+                supplier_id = st.number_input("Supplier ID", key="supplier_id",
+                                              help="Enter the unique numeric ID of the supplier to be updated")
+                supplier_name = st.text_input("Supplier Name", key="supplier_name",
+                                              help="Enter the updated name of the supplier")
+                landline_no = st.text_input("Landline Number", key="landline_no",
+                                            help="Enter the updated landline number of the supplier")
                 email = st.text_input("Email", key="email", help="Enter the updated email address of the supplier")
-                country_code = st.text_input("Country Code", key="country_code", help="Enter the updated country code of the supplier")
-                mobile_no = st.text_input("Mobile Number", key="mobile_no", help="Enter the updated mobile number of the supplier")
+                country_code = st.text_input("Country Code", key="country_code",
+                                             help="Enter the updated country code of the supplier")
+                mobile_no = st.text_input("Mobile Number", key="mobile_no",
+                                          help="Enter the updated mobile number of the supplier")
                 address = st.text_input("Address", key="address", help="Enter the updated address of the supplier")
                 city = st.text_input("City", key="city", help="Enter the updated city of the supplier")
-                state_province = st.text_input("State/Province", key="state_province", help="Enter the updated state/province of the supplier")
+                state_province = st.text_input("State/Province", key="state_province",
+                                               help="Enter the updated state/province of the supplier")
                 country = st.text_input("Country", key="country", help="Enter the updated country of the supplier")
-                postal_code = st.text_input("Postal Code", key="postal_code", help="Enter the updated postal code of the supplier")
-                gstin_number = st.text_input("GSTIN Number", key="gstin_number", help="Enter the updated GSTIN number of the supplier")
+                postal_code = st.text_input("Postal Code", key="postal_code",
+                                            help="Enter the updated postal code of the supplier")
+                gstin_number = st.text_input("GSTIN Number", key="gstin_number",
+                                             help="Enter the updated GSTIN number of the supplier")
                 if st.button("Update", key="update"):
                     try:
-                        if validate_inputs(supplier_id, supplier_name, landline_no, email, country_code, mobile_no, address, city, state_province, country, postal_code, gstin_number):
-                            supplier.update_supplier(supplier_id=supplier_id, supplier_name=supplier_name, landline_no=landline_no, email=email, mobile_no=mobile_no, address=address, city=city,
-                                                     state_province=state_province, country=country, postal_code=postal_code, gstin_number=gstin_number)
+                        if validate_inputs(supplier_id, supplier_name, landline_no, email, country_code, mobile_no,
+                                           address, city, state_province, country, postal_code, gstin_number):
+                            supplier.update_supplier(supplier_id=supplier_id, supplier_name=supplier_name,
+                                                     landline_no=landline_no, email=email, mobile_no=mobile_no,
+                                                     address=address, city=city, state_province=state_province,
+                                                     country=country, postal_code=postal_code, gstin_number=gstin_number)
                     except Exception as e:
                         st.error("An error occurred while updating the record: " + str(e))
 
             # Delete Existing Supplier:
             elif supplier_menu == "Delete":
                 st.subheader("Delete Existing Supplier")
-                supplier_id = st.number_input("Supplier ID", key="supplier_id", help="Enter the unique numeric ID of the supplier to be deleted")
+                supplier_id = st.number_input("Supplier ID", key="supplier_id",
+                                              help="Enter the unique numeric ID of the supplier to be deleted")
                 if st.button("Delete", key="delete"):
                     try:
                         supplier.delete_supplier(supplier_id)

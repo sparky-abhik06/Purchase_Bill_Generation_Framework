@@ -126,7 +126,8 @@ def main_product():
                 if st.button("Insert Product"):
                     try:
                         if validate_inputs(product_id, product_name, description, category, supplier_id, unit_price):
-                            product.insert_product(product_id, product_name, description, category, supplier_id, unit_price)
+                            product.insert_product(product_id=product_id, product_name=product_name, description=description,
+                                                   category=category, supplier_id=supplier_id, unit_price=unit_price)
                     except Exception as e:
                         st.error("Failed to insert record into Product table: " + str(e))
 
@@ -174,7 +175,8 @@ def main_product():
                 if st.button("Update Product"):
                     try:
                         if validate_inputs(product_id, product_name, description, category, supplier_id, unit_price):
-                            product.update_product(product_id, product_name, description, category, supplier_id, unit_price)
+                            product.update_product(product_id=product_id, product_name=product_name, description=description,
+                                                   category=category, supplier_id=supplier_id, unit_price=unit_price)
                     except Exception as e:
                         st.error("Failed to update record in Product table: " + str(e))
 

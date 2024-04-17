@@ -135,8 +135,9 @@ def main_billing():
                     try:
                         if validate_inputs(purchase_id, supplier_id, gstin_number, product_id, quantity, unit_price, total,
                                            discount, cgst, sgst, igst, purchase_date, item):
-                            billing.insert_purchase(purchase_id, supplier_id, gstin_number, product_id, quantity, unit_price,
-                                                    total, discount, cgst, sgst, igst, purchase_date, item)
+                            billing.insert_purchase(purchase_id=purchase_id, supplier_id=supplier_id, gstin_number=gstin_number,
+                                                    product_id=product_id, quantity=quantity, unit_price=unit_price, total=total,
+                                                    discount=discount, cgst=cgst, sgst=sgst, igst=igst, purchase_date=purchase_date, item=item)
                     except Exception as e:
                         st.error("Failed to insert record into Purchase table: " + str(e))
 
@@ -173,8 +174,9 @@ def main_billing():
                     try:
                         if validate_inputs(purchase_id, supplier_id, gstin_number, product_id, quantity, unit_price, total,
                                            discount, cgst, sgst, igst, purchase_date, item):
-                            billing.update_purchase(purchase_id, supplier_id, gstin_number, product_id, quantity, unit_price,
-                                                    total, discount, cgst, sgst, igst, purchase_date, item)
+                            billing.update_purchase(purchase_id=purchase_id, supplier_id=supplier_id, gstin_number=gstin_number,
+                                                    product_id=product_id, quantity=quantity, unit_price=unit_price, total=total,
+                                                    discount=discount, cgst=cgst, sgst=sgst, igst=igst, purchase_date=purchase_date, item=item)
                     except Exception as e:
                         st.error("Failed to update record in Purchase table: " + str(e))
 
