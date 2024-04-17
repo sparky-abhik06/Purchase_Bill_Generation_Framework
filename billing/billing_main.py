@@ -1,7 +1,7 @@
 import streamlit as st
 import psycopg2
 
-from database_connection.database_connection import DatabaseConnection, db_connection
+from database_connection.database_connection import DatabaseConnection
 
 
 # Validating User Inputs:
@@ -24,9 +24,6 @@ def validate_inputs(purchase_id: int, supplier_id: int, gstin_number: str, produ
         return False
     if unit_price <= 0:
         st.warning("Please enter valid Unit Price")
-        return False
-    if total <= 0:
-        st.warning("Please enter valid Total")
         return False
     if discount < 0:
         st.warning("Please enter valid Discount")
@@ -98,73 +95,77 @@ class Billing:
 # Streamlit UI for Billing Management:
 def main_billing():
     st.header("Purchase Billing Management")
-    if db_connection is None:
-        billing = Billing(db_connection)
-        billing_menu = st.selectbox("Billing Menu", ["Insert", "Update", "Delete"], key="billing_menu", help="Select the operation you want to perform on the Purchase table")
+    try:
+        billing = Billing(DatabaseConnection("billing", "postgres", "admin", "localhost", "5432").connect())
+        if billing.connection is not None:
+            billing_menu = st.selectbox("Billing Menu", ["Insert", "Update", "Delete"], key="billing_menu", help="Select the operation you want to perform on the Purchase table")
 
-        # Insert New Purchase Record:
-        if billing_menu == "Insert":
-            st.subheader("Insert New Purchase Record")
-            purchase_id = st.number_input("Purchase ID", key="purchase_id", help="Enter the unique numeric ID for the new purchase record")
-            supplier_id = st.number_input("Supplier ID", key="supplier_id", help="Enter the existing numeric ID of the supplier")
-            gstin_number = st.text_input("GSTIN Number", key="gstin_number", help="Enter the existing GSTIN Number of the supplier")
-            product_id = st.number_input("Product ID", key="product_id", help="Enter the existing numeric ID of the product")
-            quantity = st.number_input("Quantity", key="quantity", help="Enter the quantity of the product purchased")
-            unit_price = st.number_input("Unit Price", key="unit_price", help="Enter the unit price of the product")
-            total = st.number_input("Total", key="total", help="Enter the total amount of the purchase")
-            discount = st.number_input("Discount", key="discount", help="Enter the discount amount")
-            cgst = st.number_input("CGST", key="cgst", help="Enter the CGST amount")
-            sgst = st.number_input("SGST", key="sgst", help="Enter the SGST amount")
-            igst = st.number_input("IGST", key="igst", help="Enter the IGST amount")
-            purchase_date = st.date_input("Purchase Date", key="purchase_date", help="Select the date of the purchase")
-            item = st.text_area("Item", key="item", help="Enter the item description")
-            if st.button("Insert Purchase"):
-                try:
-                    if validate_inputs(purchase_id, supplier_id, gstin_number, product_id, quantity, unit_price, total,
-                                       discount, cgst, sgst, igst, purchase_date, item):
-                        billing.insert_purchase(purchase_id, supplier_id, gstin_number, product_id, quantity, unit_price,
-                                                total, discount, cgst, sgst, igst, purchase_date, item)
-                except Exception as e:
-                    st.error("Failed to insert record into Purchase table: " + str(e))
+            # Insert New Purchase Record:
+            if billing_menu == "Insert":
+                st.subheader("Insert New Purchase Record")
+                purchase_id = st.number_input("Purchase ID", key="purchase_id", help="Enter the unique numeric ID for the new purchase record")
+                supplier_id = st.number_input("Supplier ID", key="supplier_id", help="Enter the existing numeric ID of the supplier")
+                gstin_number = st.text_input("GSTIN Number", key="gstin_number", help="Enter the existing GSTIN Number of the supplier")
+                product_id = st.number_input("Product ID", key="product_id", help="Enter the existing numeric ID of the product")
+                quantity = st.number_input("Quantity", key="quantity", help="Enter the quantity of the product purchased")
+                unit_price = st.number_input("Unit Price", key="unit_price", help="Enter the unit price of the product")
+                total = st.number_input("Total", key="total", help="Enter the total amount of the purchase")
+                discount = st.number_input("Discount", key="discount", help="Enter the discount amount")
+                cgst = st.number_input("CGST", key="cgst", help="Enter the CGST amount")
+                sgst = st.number_input("SGST", key="sgst", help="Enter the SGST amount")
+                igst = st.number_input("IGST", key="igst", help="Enter the IGST amount")
+                purchase_date = st.date_input("Purchase Date", key="purchase_date", help="Select the date of the purchase")
+                item = st.text_area("Item", key="item", help="Enter the item description")
+                if st.button("Insert Purchase"):
+                    try:
+                        if validate_inputs(purchase_id, supplier_id, gstin_number, product_id, quantity, unit_price, total,
+                                           discount, cgst, sgst, igst, purchase_date, item):
+                            billing.insert_purchase(purchase_id, supplier_id, gstin_number, product_id, quantity, unit_price,
+                                                    total, discount, cgst, sgst, igst, purchase_date, item)
+                    except Exception as e:
+                        st.error("Failed to insert record into Purchase table: " + str(e))
 
-        # Update Existing Purchase Record:
-        elif billing_menu == "Update":
-            st.subheader("Update Existing Purchase Record")
-            purchase_id = st.number_input("Purchase ID", key="purchase_id", help="Enter the unique numeric ID of the purchase record you want to update")
-            supplier_id = st.number_input("Supplier ID", key="supplier_id", help="Enter the updated numeric ID of the supplier")
-            gstin_number = st.text_input("GSTIN Number", key="gstin_number", help="Enter the updated GSTIN Number of the supplier")
-            product_id = st.number_input("Product ID", key="product_id", help="Enter the updated numeric ID of the product")
-            quantity = st.number_input("Quantity", key="quantity", help="Enter the updated quantity of the product purchased")
-            unit_price = st.number_input("Unit Price", key="unit_price", help="Enter the updated unit price of the product")
-            total = st.number_input("Total", key="total", help="Enter the updated total amount of the purchase")
-            discount = st.number_input("Discount", key="discount", help="Enter the updated discount amount")
-            cgst = st.number_input("CGST", key="cgst", help="Enter the updated CGST amount")
-            sgst = st.number_input("SGST", key="sgst", help="Enter the updated SGST amount")
-            igst = st.number_input("IGST", key="igst", help="Enter the updated IGST amount")
-            purchase_date = st.date_input("Purchase Date", key="purchase_date", help="Select the updated date of the purchase")
-            item = st.text_area("Item", key="item", help="Enter the updated item description")
-            if st.button("Update Purchase"):
-                try:
-                    if validate_inputs(purchase_id, supplier_id, gstin_number, product_id, quantity, unit_price, total,
-                                       discount, cgst, sgst, igst, purchase_date, item):
-                        billing.update_purchase(purchase_id, supplier_id, gstin_number, product_id, quantity, unit_price,
-                                                total, discount, cgst, sgst, igst, purchase_date, item)
-                except Exception as e:
-                    st.error("Failed to update record in Purchase table: " + str(e))
+            # Update Existing Purchase Record:
+            elif billing_menu == "Update":
+                st.subheader("Update Existing Purchase Record")
+                purchase_id = st.number_input("Purchase ID", key="purchase_id", help="Enter the unique numeric ID of the purchase record you want to update")
+                supplier_id = st.number_input("Supplier ID", key="supplier_id", help="Enter the updated numeric ID of the supplier")
+                gstin_number = st.text_input("GSTIN Number", key="gstin_number", help="Enter the updated GSTIN Number of the supplier")
+                product_id = st.number_input("Product ID", key="product_id", help="Enter the updated numeric ID of the product")
+                quantity = st.number_input("Quantity", key="quantity", help="Enter the updated quantity of the product purchased")
+                unit_price = st.number_input("Unit Price", key="unit_price", help="Enter the updated unit price of the product")
+                total = st.number_input("Total", key="total", help="Enter the updated total amount of the purchase")
+                discount = st.number_input("Discount", key="discount", help="Enter the updated discount amount")
+                cgst = st.number_input("CGST", key="cgst", help="Enter the updated CGST amount")
+                sgst = st.number_input("SGST", key="sgst", help="Enter the updated SGST amount")
+                igst = st.number_input("IGST", key="igst", help="Enter the updated IGST amount")
+                purchase_date = st.date_input("Purchase Date", key="purchase_date", help="Select the updated date of the purchase")
+                item = st.text_area("Item", key="item", help="Enter the updated item description")
+                if st.button("Update Purchase"):
+                    try:
+                        if validate_inputs(purchase_id, supplier_id, gstin_number, product_id, quantity, unit_price, total,
+                                           discount, cgst, sgst, igst, purchase_date, item):
+                            billing.update_purchase(purchase_id, supplier_id, gstin_number, product_id, quantity, unit_price,
+                                                    total, discount, cgst, sgst, igst, purchase_date, item)
+                    except Exception as e:
+                        st.error("Failed to update record in Purchase table: " + str(e))
 
-        # Delete Existing Purchase Record:
-        elif billing_menu == "Delete":
-            st.subheader("Delete Existing Purchase Record")
-            purchase_id = st.number_input("Purchase ID", key="purchase_id", help="Enter the unique numeric ID of the purchase record you want to delete")
-            if st.button("Delete Purchase"):
-                try:
-                    billing.delete_purchase(purchase_id)
-                except Exception as e:
-                    st.error("Failed to delete record from Purchase table: " + str(e))
+            # Delete Existing Purchase Record:
+            elif billing_menu == "Delete":
+                st.subheader("Delete Existing Purchase Record")
+                purchase_id = st.number_input("Purchase ID", key="purchase_id", help="Enter the unique numeric ID of the purchase record you want to delete")
+                if st.button("Delete Purchase"):
+                    try:
+                        billing.delete_purchase(purchase_id)
+                    except Exception as e:
+                        st.error("Failed to delete record from Purchase table: " + str(e))
 
-        # Close the database connection:
-        billing.connection.close()
-        st.info("Database connection closed successfully.")
+            # Close the database connection:
+            billing.connection.close()
+            st.info("Database connection closed successfully.")
 
-    else:
-        st.error("An error occurred while connecting to the database.")
+        else:
+            st.error("Failed to connect to the database.")
+
+    except Exception as e:
+        st.error("Failed to connect to the database: " + str(e))

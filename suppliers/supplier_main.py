@@ -4,7 +4,7 @@ import streamlit as st
 import psycopg2
 import logging
 
-from database_connection.database_connection import DatabaseConnection, db_connection
+from database_connection.database_connection import DatabaseConnection
 
 
 # Validating User Inputs:
@@ -77,8 +77,9 @@ class Supplier:
         try:
             cursor = self.connection.cursor()
             postgres_update_query = """UPDATE Supplier SET supplier_name = %s, landline_no = %s, email = %s, country_code = %s, mobile_no = %s, address = %s, city = %s, state_province = %s, country = %s, postal_code = %s, gstin_number = %s WHERE supplier_id = %x"""
-            record_to_update = (supplier_name, landline_no, email, country_code, mobile_no, address, city, state_province,
-                                country, postal_code, gstin_number, supplier_id)
+            record_to_update = (
+            supplier_name, landline_no, email, country_code, mobile_no, address, city, state_province,
+            country, postal_code, gstin_number, supplier_id)
             cursor.execute(postgres_update_query, record_to_update)
             self.connection.commit()
             count = cursor.rowcount
@@ -101,67 +102,71 @@ class Supplier:
 # Streamlit UI for Supplier Management:
 def main_supplier():
     st.header("Supplier Information Management")
-    if db_connection is not None:
-        supplier = Supplier(db_connection)
-        supplier_menu = st.selectbox("Supplier Menu", ["Insert", "Update", "Delete"], key="supplier_menu", help="Select the operation you want to perform on the Supplier table")
+    try:
+        supplier = Supplier(DatabaseConnection("postgres", "postgres", "password", "localhost", "5432").connect())
+        if supplier.connection is not None:
+            supplier_menu = st.selectbox("Supplier Menu", ["Insert", "Update", "Delete"], key="supplier_menu", help="Select the operation you want to perform on the Supplier table")
 
-        # Insert New Supplier:
-        if supplier_menu == "Insert":
-            st.subheader("Insert New Supplier")
-            supplier_id = st.number_input("Supplier ID", key="supplier_id", help="Enter the unique numeric ID for the new supplier")
-            supplier_name = st.text_input("Supplier Name", key="supplier_name", help="Enter the name of the new supplier")
-            landline_no = st.text_input("Landline Number", key="landline_no", help="Enter the landline number of the new supplier")
-            email = st.text_input("Email", key="email", help="Enter the email address of the new supplier")
-            country_code = st.text_input("Country Code", key="country_code", help="Enter the country code of the new supplier")
-            mobile_no = st.text_input("Mobile Number", key="mobile_no", help="Enter the mobile number of the new supplier")
-            address = st.text_input("Address", key="address", help="Enter the address of the new supplier")
-            city = st.text_input("City", key="city", help="Enter the city of the new supplier")
-            state_province = st.text_input("State/Province", key="state_province", help="Enter the state/province of the new supplier")
-            country = st.text_input("Country", key="country", help="Enter the country of the new supplier")
-            postal_code = st.text_input("Postal Code", key="postal_code", help="Enter the postal code of the new supplier")
-            gstin_number = st.text_input("GSTIN Number", key="gstin_number", help="Enter the GSTIN number of the new supplier")
-            if st.button("Insert", key="insert"):
-                try:
-                    if validate_inputs(supplier_id, supplier_name, landline_no, email, country_code, mobile_no, address, city, state_province, country, postal_code, gstin_number):
-                        supplier.insert_supplier(supplier_id, supplier_name, landline_no, email, country_code, mobile_no, address, city, state_province, country, postal_code, gstin_number)
-                except Exception as e:
-                    st.error("An error occurred while inserting the record: " + str(e))
+            # Insert New Supplier:
+            if supplier_menu == "Insert":
+                st.subheader("Insert New Supplier")
+                supplier_id = st.number_input("Supplier ID", key="supplier_id", help="Enter the unique numeric ID for the new supplier")
+                supplier_name = st.text_input("Supplier Name", key="supplier_name", help="Enter the name of the new supplier")
+                landline_no = st.text_input("Landline Number", key="landline_no", help="Enter the landline number of the new supplier")
+                email = st.text_input("Email", key="email", help="Enter the email address of the new supplier")
+                country_code = st.text_input("Country Code", key="country_code", help="Enter the country code of the new supplier")
+                mobile_no = st.text_input("Mobile Number", key="mobile_no", help="Enter the mobile number of the new supplier")
+                address = st.text_input("Address", key="address", help="Enter the address of the new supplier")
+                city = st.text_input("City", key="city", help="Enter the city of the new supplier")
+                state_province = st.text_input("State/Province", key="state_province", help="Enter the state/province of the new supplier")
+                country = st.text_input("Country", key="country", help="Enter the country of the new supplier")
+                postal_code = st.text_input("Postal Code", key="postal_code", help="Enter the postal code of the new supplier")
+                gstin_number = st.text_input("GSTIN Number", key="gstin_number", help="Enter the GSTIN number of the new supplier")
+                if st.button("Insert", key="insert"):
+                    try:
+                        if validate_inputs(supplier_id, supplier_name, landline_no, email, country_code, mobile_no, address, city, state_province, country, postal_code, gstin_number):
+                            supplier.insert_supplier(supplier_id, supplier_name, landline_no, email, country_code, mobile_no, address, city, state_province, country, postal_code, gstin_number)
+                    except Exception as e:
+                        st.error("An error occurred while inserting the record: " + str(e))
 
-        # Update Existing Supplier:
-        elif supplier_menu == "Update":
-            st.subheader("Update Existing Supplier")
-            supplier_id = st.number_input("Supplier ID", key="supplier_id", help="Enter the unique numeric ID of the supplier to be updated")
-            supplier_name = st.text_input("Supplier Name", key="supplier_name", help="Enter the updated name of the supplier")
-            landline_no = st.text_input("Landline Number", key="landline_no", help="Enter the updated landline number of the supplier")
-            email = st.text_input("Email", key="email", help="Enter the updated email address of the supplier")
-            country_code = st.text_input("Country Code", key="country_code", help="Enter the updated country code of the supplier")
-            mobile_no = st.text_input("Mobile Number", key="mobile_no", help="Enter the updated mobile number of the supplier")
-            address = st.text_input("Address", key="address", help="Enter the updated address of the supplier")
-            city = st.text_input("City", key="city", help="Enter the updated city of the supplier")
-            state_province = st.text_input("State/Province", key="state_province", help="Enter the updated state/province of the supplier")
-            country = st.text_input("Country", key="country", help="Enter the updated country of the supplier")
-            postal_code = st.text_input("Postal Code", key="postal_code", help="Enter the updated postal code of the supplier")
-            gstin_number = st.text_input("GSTIN Number", key="gstin_number", help="Enter the updated GSTIN number of the supplier")
-            if st.button("Update", key="update"):
-                try:
-                    if validate_inputs(supplier_id, supplier_name, landline_no, email, country_code, mobile_no, address, city, state_province, country, postal_code, gstin_number):
-                        supplier.update_supplier(supplier_id, supplier_name, landline_no, email, country_code, mobile_no, address, city, state_province, country, postal_code, gstin_number)
-                except Exception as e:
-                    st.error("An error occurred while updating the record: " + str(e))
+            # Update Existing Supplier:
+            elif supplier_menu == "Update":
+                st.subheader("Update Existing Supplier")
+                supplier_id = st.number_input("Supplier ID", key="supplier_id", help="Enter the unique numeric ID of the supplier to be updated")
+                supplier_name = st.text_input("Supplier Name", key="supplier_name", help="Enter the updated name of the supplier")
+                landline_no = st.text_input("Landline Number", key="landline_no", help="Enter the updated landline number of the supplier")
+                email = st.text_input("Email", key="email", help="Enter the updated email address of the supplier")
+                country_code = st.text_input("Country Code", key="country_code", help="Enter the updated country code of the supplier")
+                mobile_no = st.text_input("Mobile Number", key="mobile_no", help="Enter the updated mobile number of the supplier")
+                address = st.text_input("Address", key="address", help="Enter the updated address of the supplier")
+                city = st.text_input("City", key="city", help="Enter the updated city of the supplier")
+                state_province = st.text_input("State/Province", key="state_province", help="Enter the updated state/province of the supplier")
+                country = st.text_input("Country", key="country", help="Enter the updated country of the supplier")
+                postal_code = st.text_input("Postal Code", key="postal_code", help="Enter the updated postal code of the supplier")
+                gstin_number = st.text_input("GSTIN Number", key="gstin_number", help="Enter the updated GSTIN number of the supplier")
+                if st.button("Update", key="update"):
+                    try:
+                        if validate_inputs(supplier_id, supplier_name, landline_no, email, country_code, mobile_no, address, city, state_province, country, postal_code, gstin_number):
+                            supplier.update_supplier(supplier_id, supplier_name, landline_no, email, country_code, mobile_no, address, city, state_province, country, postal_code, gstin_number)
+                    except Exception as e:
+                        st.error("An error occurred while updating the record: " + str(e))
 
-        # Delete Existing Supplier:
-        elif supplier_menu == "Delete":
-            st.subheader("Delete Existing Supplier")
-            supplier_id = st.number_input("Supplier ID", key="supplier_id", help="Enter the unique numeric ID of the supplier to be deleted")
-            if st.button("Delete", key="delete"):
-                try:
-                    supplier.delete_supplier(supplier_id)
-                except Exception as e:
-                    st.error("An error occurred while deleting the record: " + str(e))
+            # Delete Existing Supplier:
+            elif supplier_menu == "Delete":
+                st.subheader("Delete Existing Supplier")
+                supplier_id = st.number_input("Supplier ID", key="supplier_id", help="Enter the unique numeric ID of the supplier to be deleted")
+                if st.button("Delete", key="delete"):
+                    try:
+                        supplier.delete_supplier(supplier_id)
+                    except Exception as e:
+                        st.error("An error occurred while deleting the record: " + str(e))
 
-        # Close the database connection:
-        supplier.connection.close()
-        st.info("Database connection closed successfully.")
+            # Close the database connection:
+            supplier.connection.close()
+            st.info("Database connection closed successfully.")
 
-    else:
-        st.error("An error occurred while connecting to the database.")
+        else:
+            st.error("An error occurred while connecting to the database.")
+
+    except Exception as e:
+        st.error("An error occurred while connecting to the database: " + str(e))

@@ -24,8 +24,3 @@ class DatabaseConnection:
         except psycopg2.Error as e:
             logging.info("Unable to connect to the database: " + str(e))
             return None
-
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    db_connection = DatabaseConnection("postgres", "postgres", "password", "localhost", "5432").connect()
