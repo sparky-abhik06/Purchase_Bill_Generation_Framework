@@ -11,7 +11,7 @@ from database_connection.database_connection import DatabaseConnection
 def validate_inputs(supplier_id: int, supplier_name: str, landline_no: str, email: str, country_code: str,
                     mobile_no: str,
                     address: str, city: str, state_province: str, country: str, postal_code: str, gstin_number: str):
-    if not supplier_id:
+    if not supplier_id or supplier_id <= 0:
         st.warning("Please enter the Supplier ID")
         return False
     if not supplier_name.strip():
@@ -147,8 +147,9 @@ def main_supplier():
             # Insert New Supplier:
             if supplier_menu == "Insert":
                 st.subheader("Insert New Supplier")
-                supplier_id = st.number_input("Supplier ID", key="supplier_id",
-                                              help="Enter the unique numeric ID for the new supplier")
+                supplier_id = int(
+                    st.number_input("Supplier ID", value=None, placeholder="Type a number...", step=1,
+                                    key="supplier_id", help="Enter the unique numeric ID for the new supplier"))
                 supplier_name = st.text_input("Supplier Name", key="supplier_name",
                                               help="Enter the name of the new supplier")
                 landline_no = st.text_input("Landline Number", key="landline_no",
@@ -174,7 +175,8 @@ def main_supplier():
                             supplier.insert_supplier(supplier_id=supplier_id, supplier_name=supplier_name,
                                                      landline_no=landline_no, email=email, mobile_no=mobile_no,
                                                      address=address, city=city, state_province=state_province,
-                                                     country=country, postal_code=postal_code, gstin_number=gstin_number)
+                                                     country=country, postal_code=postal_code,
+                                                     gstin_number=gstin_number)
                     except Exception as e:
                         st.error("An error occurred while inserting the record: " + str(e))
 
@@ -194,8 +196,10 @@ def main_supplier():
             # Search Supplier:
             elif supplier_menu == "Search":
                 st.subheader("Search Supplier")
-                supplier_id = st.number_input("Supplier ID", key="supplier_id",
-                                              help="Enter the unique numeric ID of the supplier to be searched")
+                supplier_id = int(
+                    st.number_input("Supplier ID", value=None, placeholder="Type a number...", step=1,
+                                    key="supplier_id",
+                                    help="Enter the unique numeric ID of the supplier to be searched"))
                 supplier_name = st.text_input("Supplier Name", key="supplier_name",
                                               help="Enter the name of the supplier to be searched")
                 city = st.text_input("City", key="city", help="Enter the city of the supplier to be searched")
@@ -226,8 +230,10 @@ def main_supplier():
             # Update Existing Supplier:
             elif supplier_menu == "Update":
                 st.subheader("Update Existing Supplier")
-                supplier_id = st.number_input("Supplier ID", key="supplier_id",
-                                              help="Enter the unique numeric ID of the supplier to be updated")
+                supplier_id = int(
+                    st.number_input("Supplier ID", value=None, placeholder="Type a number...", step=1,
+                                    key="supplier_id",
+                                    help="Enter the unique numeric ID of the supplier to be updated"))
                 supplier_name = st.text_input("Supplier Name", key="supplier_name",
                                               help="Enter the updated name of the supplier")
                 landline_no = st.text_input("Landline Number", key="landline_no",
@@ -253,15 +259,18 @@ def main_supplier():
                             supplier.update_supplier(supplier_id=supplier_id, supplier_name=supplier_name,
                                                      landline_no=landline_no, email=email, mobile_no=mobile_no,
                                                      address=address, city=city, state_province=state_province,
-                                                     country=country, postal_code=postal_code, gstin_number=gstin_number)
+                                                     country=country, postal_code=postal_code,
+                                                     gstin_number=gstin_number)
                     except Exception as e:
                         st.error("An error occurred while updating the record: " + str(e))
 
             # Delete Existing Supplier:
             elif supplier_menu == "Delete":
                 st.subheader("Delete Existing Supplier")
-                supplier_id = st.number_input("Supplier ID", key="supplier_id",
-                                              help="Enter the unique numeric ID of the supplier to be deleted")
+                supplier_id = int(
+                    st.number_input("Supplier ID", value=None, placeholder="Type a number...", step=1,
+                                    key="supplier_id",
+                                    help="Enter the unique numeric ID of the supplier to be deleted"))
                 if st.button("Delete", key="delete"):
                     try:
                         supplier.delete_supplier(supplier_id)

@@ -8,7 +8,7 @@ from database_connection.database_connection import DatabaseConnection
 # Validating User Inputs:
 def validate_inputs(product_id: int, product_name: str, description: str, category: str, supplier_id: int,
                     unit_price: float):
-    if not product_id:
+    if not product_id or product_id <= 0:
         st.warning("Please enter the Product ID")
         return False
     if not product_name.strip():
@@ -20,14 +20,15 @@ def validate_inputs(product_id: int, product_name: str, description: str, catego
     if not category.strip():
         st.warning("Please enter the Category")
         return False
-    if not supplier_id:
+    if not supplier_id or supplier_id <= 0:
         st.warning("Please enter the Supplier ID")
         return False
-    if not unit_price:
+    if not unit_price or unit_price <= 0.0:
         st.warning("Please enter the Unit Price")
         return False
     else:
         return True
+
 
 # Creating Product Class:
 class Product:
@@ -38,7 +39,7 @@ class Product:
                        unit_price: float):
         try:
             cursor = self.connection.cursor()
-            postgres_insert_query = """ INSERT INTO Product (product_id, product_name, description, category, supplier_id, price) VALUES (%x,%s,%s,%s,%x,%f)"""
+            postgres_insert_query = """INSERT INTO Product (product_id, product_name, description, category, supplier_id, unite_price) VALUES (%x,%s,%s,%s,%x,%f)"""
             record_to_insert = (product_id, product_name, description, category, supplier_id, unit_price)
             cursor.execute(postgres_insert_query, record_to_insert)
             self.connection.commit()
@@ -51,7 +52,7 @@ class Product:
                        unit_price: float):
         try:
             cursor = self.connection.cursor()
-            postgres_update_query = """UPDATE Product SET product_name = %s, description = %s, category = %s, supplier_id = %x, price = %f WHERE product_id = %x"""
+            postgres_update_query = """UPDATE Product SET product_name = %s, description = %s, category = %s, supplier_id = %x, unit_price = %f WHERE product_id = %x"""
             record_to_update = (product_name, description, category, supplier_id, unit_price, product_id)
             cursor.execute(postgres_update_query, record_to_update)
             self.connection.commit()
@@ -112,21 +113,31 @@ def main_product():
     try:
         product = Product(DatabaseConnection("postgres", "postgres", "password", "localhost", "5432").connect())
         if product.connection is not None:
-            product_menu = st.selectbox("Product Menu", ["Insert", "Show All", "Search", "Update", "Delete"], key="product_menu", help="Select the operation you want to perform on the Product table")
+            product_menu = st.selectbox("Product Menu", ["Insert", "Show All", "Search", "Update", "Delete"],
+                                        key="product_menu",
+                                        help="Select the operation you want to perform on the Product table")
 
             # Insert New Product:
             if product_menu == "Insert":
                 st.subheader("Insert New Product")
-                product_id = st.number_input("Product ID", key="product_id", help="Enter the unique numeric ID for the new product")
-                product_name = st.text_input("Product Name", key="product_name", help="Enter the name of the new product")
-                description = st.text_area("Description", key="description", help="Enter the description of the new product")
+                product_id = int(
+                    st.number_input("Product ID", value=None, placeholder="Type a number...", step=1,
+                                    key="product_id", help="Enter the unique numeric ID for the new product"))
+                product_name = st.text_input("Product Name", key="product_name",
+                                             help="Enter the name of the new product")
+                description = st.text_area("Description", key="description",
+                                           help="Enter the description of the new product")
                 category = st.text_input("Category", key="category", help="Enter the category of the new product")
-                supplier_id = st.number_input("Supplier ID", key="supplier_id", help="Enter the unique numeric ID of the supplier")
-                unit_price = st.number_input("Unit Price", key="unit_price", help="Enter the unit price of the new product")
+                supplier_id = int(
+                    st.number_input("Supplier ID", value=None, placeholder="Type a number...", step=1,
+                                    key="supplier_id", help="Enter the unique numeric ID of the supplier"))
+                unit_price = float(st.number_input("Unit Price", value=None, placeholder="Type price",
+                                                   key="unit_price", help="Enter the unit price of the new product"))
                 if st.button("Insert Product"):
                     try:
                         if validate_inputs(product_id, product_name, description, category, supplier_id, unit_price):
-                            product.insert_product(product_id=product_id, product_name=product_name, description=description,
+                            product.insert_product(product_id=product_id, product_name=product_name,
+                                                   description=description,
                                                    category=category, supplier_id=supplier_id, unit_price=unit_price)
                     except Exception as e:
                         st.error("Failed to insert record into Product table: " + str(e))
@@ -146,10 +157,15 @@ def main_product():
             # Search Product:
             elif product_menu == "Search":
                 st.subheader("Search Product")
-                product_id = st.number_input("Product ID", key="product_id", help="Enter the unique numeric ID of the product you want to search")
-                product_name = st.text_input("Product Name", key="product_name", help="Enter the name of the product you want to search")
-                category = st.text_input("Category", key="category", help="Enter the category of the product you want to search")
-                supplier_id = st.number_input("Supplier ID", key="supplier_id", help="Enter the unique numeric ID of the supplier you want to search")
+                product_id = int(
+                    st.number_input("Product ID", value=None, placeholder="Type a number...", step=1,
+                                    key="product_id", help="Enter the unique numeric ID of the product you want to search"))
+                product_name = st.text_input("Product Name", key="product_name",
+                                             help="Enter the name of the product you want to search")
+                category = st.text_input("Category", key="category",
+                                         help="Enter the category of the product you want to search")
+                supplier_id = int(st.number_input("Supplier ID", value=None, placeholder="Type a number...", step=1,
+                                                  key="supplier_id", help="Enter the unique numeric ID of the supplier you want to search"))
                 if st.button("Search", key="search"):
                     try:
                         products = product.search_product(product_id=product_id if product_id else None,
@@ -157,7 +173,8 @@ def main_product():
                                                           category=category if category else None,
                                                           supplier_id=supplier_id if supplier_id else None)
                         if products is not None:
-                            columns = ["Product ID", "Product Name", "Description", "Category", "Supplier ID", "Unit Price"]
+                            columns = ["Product ID", "Product Name", "Description", "Category", "Supplier ID",
+                                       "Unit Price"]
                             df = pd.DataFrame(products, columns=columns)
                             st.dataframe(df)
                     except Exception as e:
@@ -166,16 +183,22 @@ def main_product():
             # Update Existing Product:
             elif product_menu == "Update":
                 st.subheader("Update Existing Product")
-                product_id = st.number_input("Product ID", key="product_id", help="Enter the unique numeric ID of the product you want to update")
-                product_name = st.text_input("Product Name", key="product_name", help="Enter the updated name of the product")
-                description = st.text_area("Description", key="description", help="Enter the updated description of the product")
+                product_id = int(st.number_input("Product ID", value=None, placeholder="Type a number...", step=1,
+                                                 key="product_id", help="Enter the unique numeric ID of the product you want to update"))
+                product_name = st.text_input("Product Name", key="product_name",
+                                             help="Enter the updated name of the product")
+                description = st.text_area("Description", key="description",
+                                           help="Enter the updated description of the product")
                 category = st.text_input("Category", key="category", help="Enter the updated category of the product")
-                supplier_id = st.number_input("Supplier ID", key="supplier_id", help="Enter the updated unique numeric ID of the supplier")
-                unit_price = st.number_input("Unit Price", key="unit_price", help="Enter the updated unit price of the product")
+                supplier_id = int(st.number_input("Supplier ID", value=None, placeholder="Type a number...", step=1,
+                                                  key="supplier_id", help="Enter the updated unique numeric ID of the supplier"))
+                unit_price = float(st.number_input("Unit Price", valeu=None, placeholder="Type your price...",
+                                                   key="unit_price", help="Enter the updated unit price of the product"))
                 if st.button("Update Product"):
                     try:
                         if validate_inputs(product_id, product_name, description, category, supplier_id, unit_price):
-                            product.update_product(product_id=product_id, product_name=product_name, description=description,
+                            product.update_product(product_id=product_id, product_name=product_name,
+                                                   description=description,
                                                    category=category, supplier_id=supplier_id, unit_price=unit_price)
                     except Exception as e:
                         st.error("Failed to update record in Product table: " + str(e))
@@ -183,7 +206,8 @@ def main_product():
             # Delete Existing Product:
             elif product_menu == "Delete":
                 st.subheader("Delete Existing Product")
-                product_id = st.number_input("Product ID", key="product_id", help="Enter the unique numeric ID of the product you want to delete")
+                product_id = int(st.number_input("Product ID", value=None, placeholder="Type a number...", step=1,
+                                                 key="product_id", help="Enter the unique numeric ID of the product you want to delete"))
                 if st.button("Delete Product"):
                     try:
                         product.delete_product(product_id)
