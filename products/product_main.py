@@ -39,7 +39,7 @@ class Product:
                        unit_price: float):
         try:
             cursor = self.connection.cursor()
-            postgres_insert_query = """INSERT INTO Product (product_id, product_name, description, category, supplier_id, unite_price) VALUES (%x,%s,%s,%s,%x,%f)"""
+            postgres_insert_query = """INSERT INTO Product (product_id, product_name, description, category, supplier_id, unit_price) VALUES (%s, %s, %s, %s, %s, %s)"""
             record_to_insert = (product_id, product_name, description, category, supplier_id, unit_price)
             cursor.execute(postgres_insert_query, record_to_insert)
             self.connection.commit()
@@ -52,7 +52,7 @@ class Product:
                        unit_price: float):
         try:
             cursor = self.connection.cursor()
-            postgres_update_query = """UPDATE Product SET product_name = %s, description = %s, category = %s, supplier_id = %x, unit_price = %f WHERE product_id = %x"""
+            postgres_update_query = """UPDATE Product SET product_name = %s, description = %s, category = %s, supplier_id = %s, unit_price = %s WHERE product_id = %s"""
             record_to_update = (product_name, description, category, supplier_id, unit_price, product_id)
             cursor.execute(postgres_update_query, record_to_update)
             self.connection.commit()
@@ -64,7 +64,7 @@ class Product:
     def delete_product(self, product_id: int):
         try:
             cursor = self.connection.cursor()
-            postgres_delete_query = """DELETE FROM Product WHERE product_id = %x"""
+            postgres_delete_query = """DELETE FROM Product WHERE product_id = %s"""
             cursor.execute(postgres_delete_query, (product_id,))
             self.connection.commit()
             count = cursor.rowcount
@@ -109,7 +109,7 @@ class Product:
     def product_details(self, product_id: int):
         try:
             cursor = self.connection.cursor()
-            cursor.execute("""SELECT * FROM Product WHERE product_id = %x""", (product_id))
+            cursor.execute("""SELECT * FROM Product WHERE product_id = %s""", (product_id,))
             product = cursor.fetchone()
             if product is not None:
                 product_name = product[1]
@@ -156,10 +156,10 @@ def main_product():
                 if st.button("Insert Product"):
                     try:
                         if validate_inputs(product_id, product_name, description, category, supplier_id, unit_price):
-                            product.insert_product(product_id=int(product_id), product_name=product_name,
+                            product.insert_product(product_id=product_id, product_name=product_name,
                                                    description=description,
-                                                   category=category, supplier_id=int(supplier_id),
-                                                   unit_price=float(unit_price))
+                                                   category=category, supplier_id=supplier_id,
+                                                   unit_price=unit_price)
                     except Exception as e:
                         st.error("Failed to insert record into Product table: " + str(e))
 
@@ -190,10 +190,8 @@ def main_product():
                                               help="Enter the unique numeric ID of the supplier you want to search")
                 if st.button("Search", key="search"):
                     try:
-                        products = product.search_product(product_id=int(product_id) if product_id else None,
-                                                          product_name=product_name if product_name else None,
-                                                          category=category if category else None,
-                                                          supplier_id=int(supplier_id) if supplier_id else None)
+                        products = product.search_product(product_id=product_id, product_name=product_name,
+                                                          category=category, supplier_id=supplier_id)
                         if products is not None:
                             columns = ["Product ID", "Product Name", "Description", "Category", "Supplier ID",
                                        "Unit Price"]
@@ -216,15 +214,15 @@ def main_product():
                 supplier_id = st.number_input("Supplier ID", value=None, placeholder="Type a number...", step=1,
                                               key="supplier_id",
                                               help="Enter the updated unique numeric ID of the supplier")
-                unit_price = st.number_input("Unit Price", valeu=None, placeholder="Type your price...",
+                unit_price = st.number_input("Unit Price", value=None, placeholder="Type your price...",
                                              key="unit_price", help="Enter the updated unit price of the product")
                 if st.button("Update Product"):
                     try:
                         if validate_inputs(product_id, product_name, description, category, supplier_id, unit_price):
-                            product.update_product(product_id=int(product_id), product_name=product_name,
+                            product.update_product(product_id=product_id, product_name=product_name,
                                                    description=description,
-                                                   category=category, supplier_id=int(supplier_id),
-                                                   unit_price=float(unit_price))
+                                                   category=category, supplier_id=supplier_id,
+                                                   unit_price=unit_price)
                     except Exception as e:
                         st.error("Failed to update record in Product table: " + str(e))
 
@@ -233,7 +231,7 @@ def main_product():
                 st.subheader("Delete Existing Product")
                 product_id = st.number_input("Product ID", value=None, placeholder="Type a number...", step=1,
                                              key="product_id", help="Enter the unique numeric ID of the product you want to delete")
-                product_details = product.product_details(int(product_id))
+                product_details = product.product_details(product_id)
                 if product_details is not None:
                     product_name = st.text_input("Product Name", value=product_details[0], key="product_name", disabled=True)
                     description = st.text_area("Description", value=product_details[1], key="description", disabled=True)

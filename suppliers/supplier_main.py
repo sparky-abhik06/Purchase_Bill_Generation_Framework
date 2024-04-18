@@ -57,7 +57,7 @@ class Supplier:
                         gstin_number: str):
         try:
             cursor = self.connection.cursor()
-            postgres_insert_query = """INSERT INTO Supplier (supplier_id, supplier_name, landline_no, email, mobile_no, address, city, state_province, country, postal_code, gstin_number) VALUES (%x,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
+            postgres_insert_query = """INSERT INTO Supplier (supplier_id, supplier_name, landline_no, email, mobile_no, address, city, state_province, country, postal_code, gstin_number) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
             record_to_insert = (supplier_id, supplier_name, landline_no, email, mobile_no, address, city,
                                 state_province, country, postal_code, gstin_number)
             cursor.execute(postgres_insert_query, record_to_insert)
@@ -72,7 +72,7 @@ class Supplier:
                         gstin_number: str):
         try:
             cursor = self.connection.cursor()
-            postgres_update_query = """UPDATE Supplier SET supplier_name = %s, landline_no = %s, email = %s, mobile_no = %s, address = %s, city = %s, state_province = %s, country = %s, postal_code = %s, gstin_number = %s WHERE supplier_id = %x"""
+            postgres_update_query = """UPDATE Supplier SET supplier_name = %s, landline_no = %s, email = %s, mobile_no = %s, address = %s, city = %s, state_province = %s, country = %s, postal_code = %s, gstin_number = %s WHERE supplier_id = %s"""
             record_to_update = (supplier_name, landline_no, email, mobile_no, address, city, state_province,
                                 country, postal_code, gstin_number, supplier_id)
             cursor.execute(postgres_update_query, record_to_update)
@@ -85,7 +85,7 @@ class Supplier:
     def delete_supplier(self, supplier_id: int):
         try:
             cursor = self.connection.cursor()
-            postgres_delete_query = """DELETE FROM Supplier WHERE supplier_id = %x"""
+            postgres_delete_query = """DELETE FROM Supplier WHERE supplier_id = %s"""
             cursor.execute(postgres_delete_query, (supplier_id,))
             self.connection.commit()
             count = cursor.rowcount
@@ -132,7 +132,7 @@ class Supplier:
     def supplier_details(self, supplier_id: int):
         try:
             cursor = self.connection.cursor()
-            cursor.execute("""SELECT * FROM Supplier WHERE supplier_id = %x""", (supplier_id,))
+            cursor.execute("""SELECT * FROM Supplier WHERE supplier_id = %s""", (supplier_id,))
             supplier = cursor.fetchone()
             if supplier is not None:
                 supplier_name = supplier[1]
@@ -145,7 +145,8 @@ class Supplier:
                 country = supplier[8]
                 postal_code = supplier[9]
                 gstin_number = supplier[10]
-                return [supplier_name, landline_no, email, mobile_no, address, city, state_province, country, postal_code, gstin_number]
+                return [supplier_name, landline_no, email, mobile_no, address, city, state_province, country,
+                        postal_code, gstin_number]
             else:
                 st.info("No supplier found with the given ID")
                 return None
@@ -277,7 +278,7 @@ def main_supplier():
                     try:
                         if validate_inputs(supplier_id, supplier_name, email, country_code, mobile_no,
                                            address, city, state_province, country, postal_code, gstin_number):
-                            supplier.update_supplier(supplier_id=int(supplier_id), supplier_name=supplier_name,
+                            supplier.update_supplier(supplier_id=int(supplier_id) if supplier_id else None, supplier_name=supplier_name,
                                                      landline_no=landline_no, email=email, mobile_no=mobile_no,
                                                      address=address, city=city, state_province=state_province,
                                                      country=country, postal_code=postal_code,
@@ -290,8 +291,8 @@ def main_supplier():
                 st.subheader("Delete Existing Supplier")
                 supplier_id = st.number_input("Supplier ID", value=None, placeholder="Type a number...", step=1,
                                               key="supplier_id", help="Enter the unique numeric ID of the supplier to be deleted")
-                supplier_details = supplier.supplier_details(int(supplier_id))
-                if supplier_details is None:
+                supplier_details = supplier.supplier_details(int(supplier_id)) if supplier_id else None
+                if supplier_details is not None:
                     supplier_name = st.text_input("Supplier Name", value=supplier_details[0], key="supplier_name", disabled=True)
                     landline_no = st.text_input("Landline Number", value=supplier_details[1], key="landline_no", disabled=True)
                     email = st.text_input("Email", value=supplier_details[2], key="email", disabled=True)
@@ -304,7 +305,7 @@ def main_supplier():
                     gstin_number = st.text_input("GSTIN Number", value=supplier_details[9], key="gstin_number", disabled=True)
                 if st.button("Delete", key="delete"):
                     try:
-                        supplier.delete_supplier(int(supplier_id))
+                        supplier.delete_supplier(int(supplier_id) if supplier_id else None)
                     except Exception as e:
                         st.error("An error occurred while deleting the record: " + str(e))
 
