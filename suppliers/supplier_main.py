@@ -51,6 +51,12 @@ def validate_inputs(supplier_id: int, supplier_name: str, landline_no: str, emai
         return True
 
 
+# Initialize session state
+if 'connection' not in st.session_state:
+    st.session_state.db_connection = DatabaseConnection("postgres", "postgres", "password", "localhost",
+                                                        "5432").connect()
+
+
 # Creating Supplier Class:
 class Supplier:
     def __init__(self, connection):
@@ -61,7 +67,7 @@ class Supplier:
                         gstin_number: str):
         try:
             cursor = self.connection.cursor()
-            postgres_insert_query = """INSERT INTO Supplier (supplier_id, supplier_name, landline_no, email, country_code, mobile_no, address, city, state_province, country, postal_code, gstin_number) VALUES (%x,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
+            postgres_insert_query = """INSERT INTO Supplier (supplier_id, supplier_name, landline_no, email, mobile_no, address, city, state_province, country, postal_code, gstin_number) VALUES (%x,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
             record_to_insert = (supplier_id, supplier_name, landline_no, email, mobile_no, address, city,
                                 state_province, country, postal_code, gstin_number)
             cursor.execute(postgres_insert_query, record_to_insert)
@@ -76,7 +82,7 @@ class Supplier:
                         gstin_number: str):
         try:
             cursor = self.connection.cursor()
-            postgres_update_query = """UPDATE Supplier SET supplier_name = %s, landline_no = %s, email = %s, country_code = %s, mobile_no = %s, address = %s, city = %s, state_province = %s, country = %s, postal_code = %s, gstin_number = %s WHERE supplier_id = %x"""
+            postgres_update_query = """UPDATE Supplier SET supplier_name = %s, landline_no = %s, email = %s, mobile_no = %s, address = %s, city = %s, state_province = %s, country = %s, postal_code = %s, gstin_number = %s WHERE supplier_id = %x"""
             record_to_update = (supplier_name, landline_no, email, mobile_no, address, city, state_province,
                                 country, postal_code, gstin_number, supplier_id)
             cursor.execute(postgres_update_query, record_to_update)
@@ -138,7 +144,7 @@ class Supplier:
 def main_supplier():
     st.header("Supplier Information Management")
     try:
-        supplier = Supplier(DatabaseConnection("postgres", "postgres", "password", "localhost", "5432").connect())
+        supplier = Supplier(st.session_state.db_connection)
         if supplier.connection is not None:
             supplier_menu = st.selectbox("Supplier Menu", ["Insert", "Show All", "Search", "Update", "Delete"],
                                          key="supplier_menu",
@@ -267,10 +273,8 @@ def main_supplier():
             # Delete Existing Supplier:
             elif supplier_menu == "Delete":
                 st.subheader("Delete Existing Supplier")
-                supplier_id = int(
-                    st.number_input("Supplier ID", value=None, placeholder="Type a number...", step=1,
-                                    key="supplier_id",
-                                    help="Enter the unique numeric ID of the supplier to be deleted"))
+                supplier_id = int(st.number_input("Supplier ID", value=None, placeholder="Type a number...", step=1,
+                                                  key="supplier_id", help="Enter the unique numeric ID of the supplier to be deleted"))
                 if st.button("Delete", key="delete"):
                     try:
                         supplier.delete_supplier(supplier_id)
@@ -278,8 +282,8 @@ def main_supplier():
                         st.error("An error occurred while deleting the record: " + str(e))
 
             # Close the database connection:
-            supplier.connection.close()
-            st.info("Database connection closed successfully.")
+            # supplier.connection.close()
+            # st.info("Database connection closed successfully.")
 
         else:
             st.error("An error occurred while connecting to the database.")

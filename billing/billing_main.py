@@ -46,6 +46,11 @@ def validate_inputs(purchase_id: int, supplier_id: int, gstin_number: str, produ
         return False
 
 
+# Initialize session state
+if 'connection' not in st.session_state:
+    st.session_state.db_connection = DatabaseConnection("postgres", "postgres", "password", "localhost", "5432").connect()
+
+
 # Creating Billing Class:
 class Billing:
     def __init__(self, connection):
@@ -111,7 +116,7 @@ class Billing:
 def main_billing():
     st.header("Purchase Billing Management")
     try:
-        billing = Billing(DatabaseConnection("billing", "postgres", "admin", "localhost", "5432").connect())
+        billing = Billing(st.session_state.db_connection)
         if billing.connection is not None:
             billing_menu = st.selectbox("Billing Menu", ["Insert", "Show All", "Update", "Delete"], key="billing_menu", help="Select the operation you want to perform on the Purchase table")
 
@@ -193,8 +198,8 @@ def main_billing():
                         st.error("Failed to delete record from Purchase table: " + str(e))
 
             # Close the database connection:
-            billing.connection.close()
-            st.info("Database connection closed successfully.")
+            # billing.connection.close()
+            # st.info("Database connection closed successfully.")
 
         else:
             st.error("Failed to connect to the database.")
