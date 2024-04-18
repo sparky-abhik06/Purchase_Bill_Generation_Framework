@@ -30,6 +30,11 @@ def validate_inputs(product_id: int, product_name: str, description: str, catego
         return True
 
 
+# Initialize session state
+if 'connection' not in st.session_state:
+    st.session_state.db_connection = DatabaseConnection("postgres", "postgres", "password", "localhost", "5432").connect()
+
+
 # Creating Product Class:
 class Product:
     def __init__(self, connection):
@@ -111,7 +116,7 @@ class Product:
 def main_product():
     st.header("Product Information Management")
     try:
-        product = Product(DatabaseConnection("postgres", "postgres", "password", "localhost", "5432").connect())
+        product = Product(st.session_state.db_connection)
         if product.connection is not None:
             product_menu = st.selectbox("Product Menu", ["Insert", "Show All", "Search", "Update", "Delete"],
                                         key="product_menu",
@@ -215,8 +220,8 @@ def main_product():
                         st.error("Failed to delete record from Product table: " + str(e))
 
             # Close the database connection:
-            product.connection.close()
-            st.info("Database connection closed successfully.")
+            # product.connection.close()
+            # st.info("Database connection closed successfully.")
 
         else:
             st.error("Failed to connect to the database.")
