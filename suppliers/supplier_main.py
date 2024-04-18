@@ -2,6 +2,8 @@ import re
 import pandas as pd
 import streamlit as st
 import psycopg2
+import phonenumbers
+from phonenumbers import geocoder
 import logging
 
 from database_connection.database_connection import DatabaseConnection
@@ -19,7 +21,7 @@ def validate_inputs(supplier_id: int, supplier_name: str, email: str, country_co
     if not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', email):
         st.warning("Please enter a valid Email Address")
         return False
-    if not country_code.strip():
+    if not country_code:
         st.warning("Please enter the Country Code")
         return False
     if not mobile_no.strip():
@@ -45,6 +47,15 @@ def validate_inputs(supplier_id: int, supplier_name: str, email: str, country_co
         return False
     else:
         return True
+
+
+# Getting Country Codes:
+def get_country_codes():
+    country_codes = {}
+    for code, name in phonenumbers.COUNTRY_CODE_TO_REGION_CODE.items():
+        country = geocoder.country_name_for_number(phonenumbers.parse("+" + str(code) + "123456"), "en")
+        country_codes[country] = "+" + str(code)
+    return country_codes
 
 
 # Creating Supplier Class:
@@ -167,6 +178,7 @@ def main_supplier():
             supplier_menu = st.selectbox("Supplier Menu", ["Insert", "Show All", "Search", "Update", "Delete"],
                                          key="supplier_menu",
                                          help="Select the operation you want to perform on the Supplier table")
+            country_codes = get_country_codes()
 
             # Insert New Supplier:
             if supplier_menu == "Insert":
@@ -179,15 +191,16 @@ def main_supplier():
                 landline_no = st.text_input("Landline Number", key="landline_no",
                                             help="Enter the landline number of the new supplier")
                 email = st.text_input("Email", key="email", help="Enter the email address of the new supplier")
-                country_code = st.text_input("Country Code", key="country_code",
-                                             help="Enter the country code of the new supplier")
+                country_code = st.selectbox("Country Code", sorted(list(country_codes.items())), key="country_code",
+                                            help="Select the country code of the new supplier")
                 mobile_no = st.text_input("Mobile Number", key="mobile_no",
                                           help="Enter the mobile number of the new supplier")
                 address = st.text_input("Address", key="address", help="Enter the address of the new supplier")
                 city = st.text_input("City", key="city", help="Enter the city of the new supplier")
                 state_province = st.text_input("State/Province", key="state_province",
                                                help="Enter the state/province of the new supplier")
-                country = st.text_input("Country", key="country", help="Enter the country of the new supplier")
+                country = st.selectbox("Country", sorted(list(country_codes.keys())), key="country",
+                                       help="Enter the country of the new supplier")
                 postal_code = st.text_input("Postal Code", key="postal_code",
                                             help="Enter the postal code of the new supplier")
                 gstin_number = st.text_input("GSTIN Number", key="gstin_number",
@@ -196,6 +209,7 @@ def main_supplier():
                     try:
                         if validate_inputs(supplier_id, supplier_name, email, country_code, mobile_no,
                                            address, city, state_province, country, postal_code, gstin_number):
+                            mobile_no = country_codes[country_code] + mobile_no
                             supplier.insert_supplier(supplier_id=int(supplier_id), supplier_name=supplier_name,
                                                      landline_no=landline_no, email=email, mobile_no=mobile_no,
                                                      address=address, city=city, state_province=state_province,
@@ -228,8 +242,8 @@ def main_supplier():
                 city = st.text_input("City", key="city", help="Enter the city of the supplier to be searched")
                 state_province = st.text_input("State/Province", key="state_province",
                                                help="Enter the state/province of the supplier to be searched")
-                country = st.text_input("Country", key="country",
-                                        help="Enter the country of the supplier to be searched")
+                country = st.selectbox("Country", sorted(list(country_codes.keys())), key="country",
+                                       help="Enter the country of the supplier to be searched")
                 gstin_number = st.text_input("GSTIN Number", key="gstin_number",
                                              help="Enter the GSTIN number of the supplier to be searched")
                 if st.button("Search", key="search"):
@@ -261,15 +275,16 @@ def main_supplier():
                 landline_no = st.text_input("Landline Number", key="landline_no",
                                             help="Enter the updated landline number of the supplier")
                 email = st.text_input("Email", key="email", help="Enter the updated email address of the supplier")
-                country_code = st.text_input("Country Code", key="country_code",
-                                             help="Enter the updated country code of the supplier")
+                country_code = st.selectbox("Country Code", sorted(list(country_codes.items())), key="country_code",
+                                            help="Enter the updated country code of the supplier")
                 mobile_no = st.text_input("Mobile Number", key="mobile_no",
                                           help="Enter the updated mobile number of the supplier")
                 address = st.text_input("Address", key="address", help="Enter the updated address of the supplier")
                 city = st.text_input("City", key="city", help="Enter the updated city of the supplier")
                 state_province = st.text_input("State/Province", key="state_province",
                                                help="Enter the updated state/province of the supplier")
-                country = st.text_input("Country", key="country", help="Enter the updated country of the supplier")
+                country = st.selectbox("Country", sorted(list(country_codes.keys())), key="country",
+                                       help="Enter the updated country of the supplier")
                 postal_code = st.text_input("Postal Code", key="postal_code",
                                             help="Enter the updated postal code of the supplier")
                 gstin_number = st.text_input("GSTIN Number", key="gstin_number",
@@ -278,7 +293,9 @@ def main_supplier():
                     try:
                         if validate_inputs(supplier_id, supplier_name, email, country_code, mobile_no,
                                            address, city, state_province, country, postal_code, gstin_number):
-                            supplier.update_supplier(supplier_id=int(supplier_id) if supplier_id else None, supplier_name=supplier_name,
+                            mobile_no = country_codes[country_code] + mobile_no
+                            supplier.update_supplier(supplier_id=int(supplier_id) if supplier_id else None,
+                                                     supplier_name=supplier_name,
                                                      landline_no=landline_no, email=email, mobile_no=mobile_no,
                                                      address=address, city=city, state_province=state_province,
                                                      country=country, postal_code=postal_code,
@@ -290,19 +307,26 @@ def main_supplier():
             elif supplier_menu == "Delete":
                 st.subheader("Delete Existing Supplier")
                 supplier_id = st.number_input("Supplier ID", value=None, placeholder="Type a number...", step=1,
-                                              key="supplier_id", help="Enter the unique numeric ID of the supplier to be deleted")
+                                              key="supplier_id",
+                                              help="Enter the unique numeric ID of the supplier to be deleted")
                 supplier_details = supplier.supplier_details(int(supplier_id)) if supplier_id else None
                 if supplier_details is not None:
-                    supplier_name = st.text_input("Supplier Name", value=supplier_details[0], key="supplier_name", disabled=True)
-                    landline_no = st.text_input("Landline Number", value=supplier_details[1], key="landline_no", disabled=True)
+                    supplier_name = st.text_input("Supplier Name", value=supplier_details[0], key="supplier_name",
+                                                  disabled=True)
+                    landline_no = st.text_input("Landline Number", value=supplier_details[1], key="landline_no",
+                                                disabled=True)
                     email = st.text_input("Email", value=supplier_details[2], key="email", disabled=True)
-                    mobile_no = st.text_input("Mobile Number", value=supplier_details[3], key="mobile_no", disabled=True)
+                    mobile_no = st.text_input("Mobile Number", value=supplier_details[3], key="mobile_no",
+                                              disabled=True)
                     address = st.text_input("Address", value=supplier_details[4], key="address", disabled=True)
                     city = st.text_input("City", value=supplier_details[5], key="city", disabled=True)
-                    state_province = st.text_input("State/Province", value=supplier_details[6], key="state_province", disabled=True)
+                    state_province = st.text_input("State/Province", value=supplier_details[6], key="state_province",
+                                                   disabled=True)
                     country = st.text_input("Country", value=supplier_details[7], key="country", disabled=True)
-                    postal_code = st.text_input("Postal Code", value=supplier_details[8], key="postal_code", disabled=True)
-                    gstin_number = st.text_input("GSTIN Number", value=supplier_details[9], key="gstin_number", disabled=True)
+                    postal_code = st.text_input("Postal Code", value=supplier_details[8], key="postal_code",
+                                                disabled=True)
+                    gstin_number = st.text_input("GSTIN Number", value=supplier_details[9], key="gstin_number",
+                                                 disabled=True)
                 if st.button("Delete", key="delete"):
                     try:
                         supplier.delete_supplier(int(supplier_id) if supplier_id else None)
