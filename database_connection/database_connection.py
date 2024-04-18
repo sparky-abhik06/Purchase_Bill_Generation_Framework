@@ -4,22 +4,13 @@ import logging
 
 # Function to connect to the PostgreSQL database
 class DatabaseConnection:
-    def __init__(self, dbname, user, password, host, port):
-        self.dbname = dbname
-        self.user = user
-        self.password = password
-        self.host = host
-        self.port = port
+    def __init__(self):
+        # Neon.tech postgresql database connection string:
+        self.db_url = "postgresql://texas_db_owner:Z09LBvPoEzRb@ep-restless-mouse-a151ytfv.ap-southeast-1.aws.neon.tech/texas_db?sslmode=require"
 
     def connect(self):
         try:
-            conn = psycopg2.connect(
-                dbname=self.dbname,
-                user=self.user,
-                password=self.password,
-                host=self.host,
-                port=self.port
-            )
+            conn = psycopg2.connect(self.db_url)
             return conn
         except psycopg2.Error as e:
             logging.info("Unable to connect to the database: " + str(e))

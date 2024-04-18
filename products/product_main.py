@@ -30,11 +30,6 @@ def validate_inputs(product_id: int, product_name: str, description: str, catego
         return True
 
 
-# Initialize session state
-if 'connection' not in st.session_state:
-    st.session_state.db_connection = DatabaseConnection("postgres", "postgres", "password", "localhost", "5432").connect()
-
-
 # Creating Product Class:
 class Product:
     def __init__(self, connection):
@@ -111,9 +106,31 @@ class Product:
         except (Exception, psycopg2.Error) as error:
             st.error("Failed to fetch records from Product table: " + str(error))
 
+    def product_details(self, product_id: int):
+        try:
+            cursor = self.connection.cursor()
+            cursor.execute("""SELECT * FROM Product WHERE product_id = %x""", (product_id))
+            product = cursor.fetchone()
+            if product is not None:
+                product_name = product[1]
+                description = product[2]
+                category = product[3]
+                supplier_id = product[4]
+                unit_price = product[5]
+                return [product_name, description, category, supplier_id, unit_price]
+            else:
+                st.info("No records found in the Product table")
+                return None
+        except (Exception, psycopg2.Error) as error:
+            st.error("Failed to fetch records from Product table: " + str(error))
+            return None
+
 
 # Streamlit UI for Product Management:
 def main_product():
+    # Initialize session state
+    if 'db_connection' not in st.session_state:
+        st.session_state.db_connection = DatabaseConnection().connect()
     st.header("Product Information Management")
     try:
         product = Product(st.session_state.db_connection)
@@ -125,25 +142,24 @@ def main_product():
             # Insert New Product:
             if product_menu == "Insert":
                 st.subheader("Insert New Product")
-                product_id = int(
-                    st.number_input("Product ID", value=None, placeholder="Type a number...", step=1,
-                                    key="product_id", help="Enter the unique numeric ID for the new product"))
+                product_id = st.number_input("Product ID", value=None, placeholder="Type a number...", step=1,
+                                             key="product_id", help="Enter the unique numeric ID for the new product")
                 product_name = st.text_input("Product Name", key="product_name",
                                              help="Enter the name of the new product")
                 description = st.text_area("Description", key="description",
                                            help="Enter the description of the new product")
                 category = st.text_input("Category", key="category", help="Enter the category of the new product")
-                supplier_id = int(
-                    st.number_input("Supplier ID", value=None, placeholder="Type a number...", step=1,
-                                    key="supplier_id", help="Enter the unique numeric ID of the supplier"))
-                unit_price = float(st.number_input("Unit Price", value=None, placeholder="Type price",
-                                                   key="unit_price", help="Enter the unit price of the new product"))
+                supplier_id = st.number_input("Supplier ID", value=None, placeholder="Type a number...", step=1,
+                                              key="supplier_id", help="Enter the unique numeric ID of the supplier")
+                unit_price = st.number_input("Unit Price", value=None, placeholder="Type price",
+                                             key="unit_price", help="Enter the unit price of the new product")
                 if st.button("Insert Product"):
                     try:
                         if validate_inputs(product_id, product_name, description, category, supplier_id, unit_price):
-                            product.insert_product(product_id=product_id, product_name=product_name,
+                            product.insert_product(product_id=int(product_id), product_name=product_name,
                                                    description=description,
-                                                   category=category, supplier_id=supplier_id, unit_price=unit_price)
+                                                   category=category, supplier_id=int(supplier_id),
+                                                   unit_price=float(unit_price))
                     except Exception as e:
                         st.error("Failed to insert record into Product table: " + str(e))
 
@@ -162,21 +178,22 @@ def main_product():
             # Search Product:
             elif product_menu == "Search":
                 st.subheader("Search Product")
-                product_id = int(
-                    st.number_input("Product ID", value=None, placeholder="Type a number...", step=1,
-                                    key="product_id", help="Enter the unique numeric ID of the product you want to search"))
+                product_id = st.number_input("Product ID", value=None, placeholder="Type a number...", step=1,
+                                             key="product_id",
+                                             help="Enter the unique numeric ID of the product you want to search")
                 product_name = st.text_input("Product Name", key="product_name",
                                              help="Enter the name of the product you want to search")
                 category = st.text_input("Category", key="category",
                                          help="Enter the category of the product you want to search")
-                supplier_id = int(st.number_input("Supplier ID", value=None, placeholder="Type a number...", step=1,
-                                                  key="supplier_id", help="Enter the unique numeric ID of the supplier you want to search"))
+                supplier_id = st.number_input("Supplier ID", value=None, placeholder="Type a number...", step=1,
+                                              key="supplier_id",
+                                              help="Enter the unique numeric ID of the supplier you want to search")
                 if st.button("Search", key="search"):
                     try:
-                        products = product.search_product(product_id=product_id if product_id else None,
+                        products = product.search_product(product_id=int(product_id) if product_id else None,
                                                           product_name=product_name if product_name else None,
                                                           category=category if category else None,
-                                                          supplier_id=supplier_id if supplier_id else None)
+                                                          supplier_id=int(supplier_id) if supplier_id else None)
                         if products is not None:
                             columns = ["Product ID", "Product Name", "Description", "Category", "Supplier ID",
                                        "Unit Price"]
@@ -188,31 +205,41 @@ def main_product():
             # Update Existing Product:
             elif product_menu == "Update":
                 st.subheader("Update Existing Product")
-                product_id = int(st.number_input("Product ID", value=None, placeholder="Type a number...", step=1,
-                                                 key="product_id", help="Enter the unique numeric ID of the product you want to update"))
+                product_id = st.number_input("Product ID", value=None, placeholder="Type a number...", step=1,
+                                             key="product_id",
+                                             help="Enter the unique numeric ID of the product you want to update")
                 product_name = st.text_input("Product Name", key="product_name",
                                              help="Enter the updated name of the product")
                 description = st.text_area("Description", key="description",
                                            help="Enter the updated description of the product")
                 category = st.text_input("Category", key="category", help="Enter the updated category of the product")
-                supplier_id = int(st.number_input("Supplier ID", value=None, placeholder="Type a number...", step=1,
-                                                  key="supplier_id", help="Enter the updated unique numeric ID of the supplier"))
-                unit_price = float(st.number_input("Unit Price", valeu=None, placeholder="Type your price...",
-                                                   key="unit_price", help="Enter the updated unit price of the product"))
+                supplier_id = st.number_input("Supplier ID", value=None, placeholder="Type a number...", step=1,
+                                              key="supplier_id",
+                                              help="Enter the updated unique numeric ID of the supplier")
+                unit_price = st.number_input("Unit Price", valeu=None, placeholder="Type your price...",
+                                             key="unit_price", help="Enter the updated unit price of the product")
                 if st.button("Update Product"):
                     try:
                         if validate_inputs(product_id, product_name, description, category, supplier_id, unit_price):
-                            product.update_product(product_id=product_id, product_name=product_name,
+                            product.update_product(product_id=int(product_id), product_name=product_name,
                                                    description=description,
-                                                   category=category, supplier_id=supplier_id, unit_price=unit_price)
+                                                   category=category, supplier_id=int(supplier_id),
+                                                   unit_price=float(unit_price))
                     except Exception as e:
                         st.error("Failed to update record in Product table: " + str(e))
 
             # Delete Existing Product:
             elif product_menu == "Delete":
                 st.subheader("Delete Existing Product")
-                product_id = int(st.number_input("Product ID", value=None, placeholder="Type a number...", step=1,
-                                                 key="product_id", help="Enter the unique numeric ID of the product you want to delete"))
+                product_id = st.number_input("Product ID", value=None, placeholder="Type a number...", step=1,
+                                             key="product_id", help="Enter the unique numeric ID of the product you want to delete")
+                product_details = product.product_details(int(product_id))
+                if product_details is not None:
+                    product_name = st.text_input("Product Name", value=product_details[0], key="product_name", disabled=True)
+                    description = st.text_area("Description", value=product_details[1], key="description", disabled=True)
+                    category = st.text_input("Category", value=product_details[2], key="category", disabled=True)
+                    supplier_id = st.number_input("Supplier ID", value=product_details[3], key="supplier_id", disabled=True)
+                    unit_price = st.number_input("Unit Price", value=product_details[4], key="unit_price", disabled=True)
                 if st.button("Delete Product"):
                     try:
                         product.delete_product(product_id)
