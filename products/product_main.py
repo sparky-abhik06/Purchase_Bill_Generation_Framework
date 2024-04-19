@@ -190,8 +190,11 @@ def main_product():
                                               help="Enter the unique numeric ID of the supplier you want to search")
                 if st.button("Search", key="search"):
                     try:
-                        products = product.search_product(product_id=product_id, product_name=product_name,
-                                                          category=category, supplier_id=supplier_id)
+                        products = product.search_product(product_id=product_id if product_id else None,
+                                                          product_name=product_name if product_name else None,
+                                                          category=category if category else None,
+                                                          supplier_id=supplier_id if supplier_id else None)
+
                         if products is not None:
                             columns = ["Product ID", "Product Name", "Description", "Category", "Supplier ID",
                                        "Unit Price"]
@@ -230,14 +233,19 @@ def main_product():
             elif product_menu == "Delete":
                 st.subheader("Delete Existing Product")
                 product_id = st.number_input("Product ID", value=None, placeholder="Type a number...", step=1,
-                                             key="product_id", help="Enter the unique numeric ID of the product you want to delete")
+                                             key="product_id",
+                                             help="Enter the unique numeric ID of the product you want to delete")
                 product_details = product.product_details(product_id)
                 if product_details is not None:
-                    product_name = st.text_input("Product Name", value=product_details[0], key="product_name", disabled=True)
-                    description = st.text_area("Description", value=product_details[1], key="description", disabled=True)
+                    product_name = st.text_input("Product Name", value=product_details[0], key="product_name",
+                                                 disabled=True)
+                    description = st.text_area("Description", value=product_details[1], key="description",
+                                               disabled=True)
                     category = st.text_input("Category", value=product_details[2], key="category", disabled=True)
-                    supplier_id = st.number_input("Supplier ID", value=product_details[3], key="supplier_id", disabled=True)
-                    unit_price = st.number_input("Unit Price", value=product_details[4], key="unit_price", disabled=True)
+                    supplier_id = st.number_input("Supplier ID", value=product_details[3], key="supplier_id",
+                                                  disabled=True)
+                    unit_price = st.number_input("Unit Price", value=product_details[4], key="unit_price",
+                                                 disabled=True)
                 if st.button("Delete Product"):
                     try:
                         product.delete_product(product_id)
