@@ -53,7 +53,7 @@
           FOREIGN KEY (product_id) REFERENCES Product(product_id)
       );
     ```
-  * **_Third_**, you need to create a `.env` file in the root directory and add the following environment variables:
-    ```env
-    DATABASE_URL=postgres://<username>:<password>@localhost:5432/<database_name>
-    ```
+* **_Third_**, you need to create a `.env` file in the root directory and add the following environment variables:
+  ```env
+  DATABASE_URL=postgres://<username>:<password>@localhost:5432/<database_name>
+  ```
