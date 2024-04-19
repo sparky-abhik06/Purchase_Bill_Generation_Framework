@@ -211,7 +211,7 @@ def main_supplier():
                         if validate_inputs(supplier_id, supplier_name, email, country_code, mobile_no,
                                            address, city, state_province, country, postal_code, gstin_number):
                             # Ensure that country_code is properly accessed as (country_name, country_code)
-                            full_mobile_no = country_code[1] + mobile_no
+                            full_mobile_no = country_code[1] + " " + mobile_no
                             supplier.insert_supplier(supplier_id=int(supplier_id), supplier_name=supplier_name,
                                                      landline_no=landline_no, email=email, mobile_no=full_mobile_no,
                                                      address=address, city=city, state_province=state_province,
@@ -298,10 +298,10 @@ def main_supplier():
                     try:
                         if validate_inputs(supplier_id, supplier_name, email, country_code, mobile_no,
                                            address, city, state_province, country, postal_code, gstin_number):
-                            mobile_no = country_codes[country_code] + mobile_no
+                            full_mobile_no = country_code[1] + " " + mobile_no
                             supplier.update_supplier(supplier_id=int(supplier_id) if supplier_id else None,
                                                      supplier_name=supplier_name,
-                                                     landline_no=landline_no, email=email, mobile_no=mobile_no,
+                                                     landline_no=landline_no, email=email, mobile_no=full_mobile_no,
                                                      address=address, city=city, state_province=state_province,
                                                      country=country, postal_code=postal_code,
                                                      gstin_number=gstin_number)
