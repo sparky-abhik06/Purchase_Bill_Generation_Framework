@@ -205,18 +205,23 @@ def main_supplier():
                                             help="Enter the postal code of the new supplier")
                 gstin_number = st.text_input("GSTIN Number", key="gstin_number",
                                              help="Enter the GSTIN number of the new supplier")
+
                 if st.button("Insert", key="insert"):
                     try:
                         if validate_inputs(supplier_id, supplier_name, email, country_code, mobile_no,
                                            address, city, state_province, country, postal_code, gstin_number):
-                            mobile_no = country_codes[country_code] + mobile_no
+                            # Ensure that country_code is properly accessed as (country_name, country_code)
+                            full_mobile_no = country_code[1] + mobile_no
                             supplier.insert_supplier(supplier_id=int(supplier_id), supplier_name=supplier_name,
-                                                     landline_no=landline_no, email=email, mobile_no=mobile_no,
+                                                     landline_no=landline_no, email=email, mobile_no=full_mobile_no,
                                                      address=address, city=city, state_province=state_province,
                                                      country=country, postal_code=postal_code,
                                                      gstin_number=gstin_number)
                     except Exception as e:
                         st.error("An error occurred while inserting the record: " + str(e))
+
+
+
 
             # Show All Suppliers:
             elif supplier_menu == "Show All":
