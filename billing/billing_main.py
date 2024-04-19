@@ -3,10 +3,6 @@ import streamlit as st
 import psycopg2
 from datetime import datetime
 
-
-
-
-
 from database_connection.database_connection import DatabaseConnection
 
 
@@ -57,10 +53,8 @@ def validate_inputs(purchase_id: int, supplier_id: int, gstin_number: str, produ
     if not item_description.strip():
         st.warning("Please enter the Item")
         return False
-
-    # Convert purchase_date to string
-    purchase_date_str = purchase_date.strftime("%Y-%m-%d")
-    return True
+    else:
+        return True
 
 
 # Creating Billing Class:
@@ -75,8 +69,8 @@ class Billing:
             cursor = self.connection.cursor()
             postgres_insert_query = """INSERT INTO Purchase (purchase_id, supplier_id, gstin_number, product_id, quantity, unit_price, total_price, discount, cgst, sgst, igst, amount, purchase_date, item_description) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
             record_to_insert = (
-            purchase_id, supplier_id, gstin_number, product_id, quantity, unit_price, total_price, discount,
-            cgst, sgst, igst, amount, purchase_date, item_description)
+                purchase_id, supplier_id, gstin_number, product_id, quantity, unit_price, total_price, discount,
+                cgst, sgst, igst, amount, purchase_date, item_description)
             cursor.execute(postgres_insert_query, record_to_insert)
             self.connection.commit()
             count = cursor.rowcount
@@ -91,8 +85,8 @@ class Billing:
             cursor = self.connection.cursor()
             postgres_update_query = """UPDATE Purchase SET supplier_id = %s, gstin_number = %s, product_id = %s, quantity = %s, unit_price = %s, total_price = %s, discount = %s, cgst = %s, sgst = %s, igst = %s, amount = %s, purchase_date = %s, item_description = %s WHERE purchase_id = %s"""
             record_to_update = (
-            supplier_id, gstin_number, product_id, quantity, unit_price, total_price, discount, cgst, sgst,
-            igst, amount, purchase_date, item_description, purchase_id)
+                supplier_id, gstin_number, product_id, quantity, unit_price, total_price, discount, cgst, sgst,
+                igst, amount, purchase_date, item_description, purchase_id)
             cursor.execute(postgres_update_query, record_to_update)
             self.connection.commit()
             count = cursor.rowcount
@@ -196,23 +190,22 @@ class Billing:
             cursor = self.connection.cursor()
             cursor.execute("""SELECT * FROM Purchase WHERE purchase_id = %s""", (purchase_id,))
             purchase_record = cursor.fetchone()
-            if purchase_record:
-                return {
-                    "purchase_id": purchase_record[0],
-                    "supplier_id": purchase_record[1],
-                    "gstin_number": purchase_record[2],
-                    "product_id": purchase_record[3],
-                    "quantity": purchase_record[4],
-                    "unit_price": purchase_record[5],
-                    "total_price": purchase_record[6],
-                    "discount": purchase_record[7],
-                    "cgst": purchase_record[8],
-                    "sgst": purchase_record[9],
-                    "igst": purchase_record[10],
-                    "amount": purchase_record[11],
-                    "purchase_date": purchase_record[12],
-                    "item_description": purchase_record[13]
-                }
+            if purchase_record is not None:
+                supplier_id = purchase_record[1]
+                gstin_number = purchase_record[2]
+                product_id = purchase_record[3]
+                quantity = purchase_record[4]
+                unit_price = purchase_record[5]
+                total_price = purchase_record[6]
+                discount = purchase_record[7]
+                cgst = purchase_record[8]
+                sgst = purchase_record[9]
+                igst = purchase_record[10]
+                amount = purchase_record[11]
+                purchase_date = purchase_record[12]
+                item_description = purchase_record[13]
+                return [supplier_id, gstin_number, product_id, quantity, unit_price, total_price, discount, cgst, sgst,
+                        igst, amount, purchase_date, item_description]
             else:
                 st.info("No records found in Purchase table")
                 return None
@@ -220,12 +213,47 @@ class Billing:
             st.error("Failed to fetch records from Purchase table: " + str(error))
             return None
 
+    def get_purchase_ids(self):
+        try:
+            cursor = self.connection.cursor()
+            cursor.execute("""SELECT purchase_id FROM Purchase""")
+            purchase_ids = cursor.fetchall()
+            if len(purchase_ids) > 0:
+                list_purchase_ids = [purchase_id[0] for purchase_id in purchase_ids]
+                return sorted(list_purchase_ids)
+            else:
+                st.info("No records found in Purchase table")
+                return None
+        except (Exception, psycopg2.Error) as error:
+            st.error("Failed to fetch purchase IDs: " + str(error))
+            return None
+
+    def get_all_suppliers(self):
+        try:
+            cursor = self.connection.cursor()
+            cursor.execute("""SELECT supplier_id FROM Supplier""")
+            supplier_ids = cursor.fetchall()
+            if len(supplier_ids) > 0:
+                list_supplier_ids = [supplier_id[0] for supplier_id in supplier_ids]
+                return sorted(list_supplier_ids)
+            else:
+                st.info("No records found in Supplier table")
+                return None
+        except (Exception, psycopg2.Error) as error:
+            st.error("Failed to fetch supplier IDs: " + str(error))
+            return None
+
     def get_products_for_supplier(self, supplier_id: int):
         try:
             cursor = self.connection.cursor()
             cursor.execute("""SELECT product_id FROM Product WHERE supplier_id = %s""", (supplier_id,))
             product_ids = cursor.fetchall()
-            return product_ids
+            if len(product_ids) > 0:
+                list_product_ids = [product_id[0] for product_id in product_ids]
+                return sorted(list_product_ids)
+            else:
+                st.info("No records found in Product table")
+                return None
         except (Exception, psycopg2.Error) as error:
             st.error("Failed to fetch product IDs for the supplier: " + str(error))
             return None
@@ -250,19 +278,15 @@ def main_billing():
                 purchase_id = st.number_input("Purchase ID", value=None, placeholder="Type a number...", step=1,
                                               key="purchase_id",
                                               help="Enter the unique numeric ID for the new purchase record")
-                supplier_id = st.number_input("Supplier ID", value=None, placeholder="Type a number...", step=1,
-                                              key="supplier_id", help="Enter the existing numeric ID of the supplier")
+                supplier_ids = billing.get_all_suppliers()
+                supplier_id = st.selectbox("Supplier ID", options=supplier_ids, key="supplier_id",
+                                           help="Select the numeric ID of the supplier")
                 get_gstin_number = billing.get_gstin_number(supplier_id) if supplier_id else None
                 gstin_number = st.text_input("GSTIN Number", value=get_gstin_number, key="gstin_number",
                                              help="Enter the existing GSTIN Number of the supplier", disabled=True)
-
-                # Dynamically populate product ID based on the selected supplier ID
                 products_for_supplier = billing.get_products_for_supplier(supplier_id)
-                product_id_options = [product[0] for product in products_for_supplier] if products_for_supplier else []
-                product_id = st.selectbox("Product ID", options=product_id_options, key="product_id",
+                product_id = st.selectbox("Product ID", options=products_for_supplier, key="product_id",
                                           help="Select the product ID related to the selected supplier")
-
-                # Other input fields remain the same
                 quantity = st.number_input("Quantity", value=1, step=1, key="quantity",
                                            help="Enter the quantity of the product purchased")
                 product_price = billing.get_product_price(product_id) if product_id else None
@@ -311,16 +335,18 @@ def main_billing():
             # Update Existing Purchase Record:
             elif billing_menu == "Update":
                 st.subheader("Update Existing Purchase Record")
-                purchase_id = st.number_input("Purchase ID", value=None, placeholder="Type a number...", step=1,
-                                              key="purchase_id",
-                                              help="Enter the unique numeric ID of the purchase record you want to update")
-                supplier_id = st.number_input("Supplier ID", value=None, placeholder="Type a number...", step=1,
-                                              key="supplier_id", help="Enter the updated numeric ID of the supplier")
+                list_purchase_ids = billing.get_purchase_ids()
+                purchase_id = st.selectbox("Purchase ID", options=list_purchase_ids, key="purchase_id",
+                                           help="Select the unique numeric ID of the purchase record you want to update")
+                supplier_ids = billing.get_all_suppliers()
+                supplier_id = st.selectbox("Supplier ID", options=supplier_ids, key="supplier_id",
+                                           help="Select the updated numeric ID of the supplier")
                 gstin_number = billing.get_gstin_number(supplier_id) if supplier_id else None
                 gstin_number = st.text_input("GSTIN Number", value=gstin_number, key="gstin_number",
                                              help="Enter the updated GSTIN Number of the supplier")
-                product_id = st.number_input("Product ID", value=None, placeholder="Type a number...", step=1,
-                                             key="product_id", help="Enter the updated numeric ID of the product")
+                products_for_supplier = billing.get_products_for_supplier(supplier_id)
+                product_id = st.selectbox("Product ID", options=products_for_supplier, key="product_id",
+                                          help="Select the updated product ID related to the selected supplier")
                 quantity = st.number_input("Quantity", value=1, placeholder="Type a number...", step=1, key="quantity",
                                            help="Enter the updated quantity of the product purchased")
                 product_price = billing.get_product_price(product_id) if product_id else None
@@ -357,15 +383,15 @@ def main_billing():
             # Search Purchase Record:
             elif billing_menu == "Search":
                 st.subheader("Search Purchase Record")
-                purchase_id = st.number_input("Purchase ID", value=None, placeholder="Type a number...", step=1,
-                                              key="purchase_id",
-                                              help="Enter the unique numeric ID of the purchase record you want to search")
-                supplier_id = st.number_input("Supplier ID", value=None, placeholder="Type a number...", step=1,
-                                              key="supplier_id",
-                                              help="Enter the existing numeric ID of the supplier")
-                product_id = st.number_input("Product ID", value=None, placeholder="Type a number...", step=1,
-                                             key="product_id",
-                                             help="Enter the existing numeric ID of the product")
+                list_purchase_ids = billing.get_purchase_ids()
+                purchase_id = st.selectbox("Purchase ID", options=list_purchase_ids, key="purchase_id",
+                                           help="Select the numeric ID of the purchase record you want to search")
+                supplier_ids = billing.get_all_suppliers()
+                supplier_id = st.selectbox("Supplier ID", options=supplier_ids, key="supplier_id",
+                                           help="Select the numeric ID of the supplier")
+                products_for_supplier = billing.get_products_for_supplier(supplier_id)
+                product_id = st.selectbox("Product ID", options=products_for_supplier, key="product_id",
+                                          help="Select the product ID related to the selected supplier")
                 purchase_date = st.date_input("Purchase Date", key="purchase_date",
                                               help="Select the date of the purchase")
                 if st.button("Search", key="search"):
@@ -384,46 +410,43 @@ def main_billing():
                     except Exception as e:
                         st.error("Failed to fetch records from Purchase table: " + str(e))
 
-
             # Delete Existing Purchase Record:
             elif billing_menu == "Delete":
                 st.subheader("Delete Existing Purchase Record")
-                purchase_id = st.number_input("Purchase ID", value=None, placeholder="Type a number...", step=1,
-                                              key="purchase_id",
-                                              help="Enter the unique numeric ID of the purchase record you want to delete")
+                list_purchase_ids = billing.get_purchase_ids()
+                purchase_id = st.selectbox("Purchase ID", options=list_purchase_ids, key="purchase_id",
+                                           help="Select the numeric ID of the purchase record you want to delete")
                 purchase_details = billing.purchase_details(purchase_id) if purchase_id else None
                 if purchase_details is not None:
-                    supplier_id = st.text_input("Supplier ID", value=purchase_details[1], key="supplier_id",
+                    supplier_id = st.text_input("Supplier ID", value=purchase_details[0], key="supplier_id",
                                                 disabled=True)
-                    gstin_number = st.text_input("GSTIN Number", value=purchase_details[2], key="gstin_number",
+                    gstin_number = st.text_input("GSTIN Number", value=purchase_details[1], key="gstin_number",
                                                  disabled=True)
-                    product_id = st.text_input("Product ID", value=purchase_details[3], key="product_id", disabled=True)
-                    quantity = st.text_input("Quantity", value=purchase_details[4], key="quantity", disabled=True)
-                    unit_price = st.text_input("Unit Price", value=purchase_details[5], key="unit_price", disabled=True)
-                    total_price = st.text_input("Total Price", value=purchase_details[6], key="total_price",
+                    product_id = st.text_input("Product ID", value=purchase_details[2], key="product_id", disabled=True)
+                    quantity = st.text_input("Quantity", value=purchase_details[3], key="quantity", disabled=True)
+                    unit_price = st.text_input("Unit Price", value=purchase_details[4], key="unit_price", disabled=True)
+                    total_price = st.text_input("Total Price", value=purchase_details[5], key="total_price",
                                                 disabled=True)
-                    discount = st.text_input("Discount", value=purchase_details[7], key="discount", disabled=True)
-                    cgst = st.text_input("CGST", value=purchase_details[8], key="cgst", disabled=True)
-                    sgst = st.text_input("SGST", value=purchase_details[9], key="sgst", disabled=True)
-                    igst = st.text_input("IGST", value=purchase_details[10], key="igst", disabled=True)
-                    amount = st.text_input("Amount", value=purchase_details[11], key="amount", disabled=True)
-                    purchase_date = st.text_input("Purchase Date", value=purchase_details[12], key="purchase_date",
+                    discount = st.text_input("Discount", value=purchase_details[6], key="discount", disabled=True)
+                    cgst = st.text_input("CGST", value=purchase_details[7], key="cgst", disabled=True)
+                    sgst = st.text_input("SGST", value=purchase_details[8], key="sgst", disabled=True)
+                    igst = st.text_input("IGST", value=purchase_details[9], key="igst", disabled=True)
+                    amount = st.text_input("Amount", value=purchase_details[10], key="amount", disabled=True)
+                    purchase_date = st.text_input("Purchase Date", value=purchase_details[11], key="purchase_date",
                                                   disabled=True)
-                    item_description = st.text_area("Item", value=purchase_details[13], key="item", disabled=True)
+                    item_description = st.text_area("Item", value=purchase_details[12], key="item", disabled=True)
                 if st.button("Delete Purchase"):
                     try:
                         billing.delete_purchase(purchase_id)
                     except Exception as e:
                         st.error("Failed to delete record from Purchase table: " + str(e))
 
-
-
-
+            # Close the database connection:
+            # supplier.connection.close()
+            # st.info("Database connection closed successfully.")
 
         else:
             st.error("Failed to connect to the database.")
 
     except Exception as e:
         st.error("Failed to connect to the database: " + str(e))
-
-

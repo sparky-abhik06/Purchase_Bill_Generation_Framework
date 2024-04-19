@@ -125,6 +125,21 @@ class Product:
             st.error("Failed to fetch records from Product table: " + str(error))
             return None
 
+    def get_all_products(self):
+        try:
+            cursor = self.connection.cursor()
+            cursor.execute("""SELECT product_id FROM Product""")
+            product_ids = cursor.fetchall()
+            if len(product_ids) > 0:
+                list_product_ids = [product_id[0] for product_id in product_ids]
+                return sorted(list_product_ids)
+            else:
+                st.info("No records found in the Product table")
+                return None
+        except (Exception, psycopg2.Error) as error:
+            st.error("Failed to fetch records from Product table: " + str(error))
+            return None
+
 
 # Streamlit UI for Product Management:
 def main_product():
@@ -143,6 +158,7 @@ def main_product():
             if product_menu == "Insert":
                 st.subheader("Insert New Product")
                 product_id = st.number_input("Product ID", value=None, placeholder="Type a number...", step=1,
+                                             min_value=1,
                                              key="product_id", help="Enter the unique numeric ID for the new product")
                 product_name = st.text_input("Product Name", key="product_name",
                                              help="Enter the name of the new product")
@@ -150,8 +166,9 @@ def main_product():
                                            help="Enter the description of the new product")
                 category = st.text_input("Category", key="category", help="Enter the category of the new product")
                 supplier_id = st.number_input("Supplier ID", value=None, placeholder="Type a number...", step=1,
+                                              min_value=1,
                                               key="supplier_id", help="Enter the unique numeric ID of the supplier")
-                unit_price = st.number_input("Unit Price", value=None, placeholder="Type price",
+                unit_price = st.number_input("Unit Price", value=None, placeholder="Type price", min_value=0.0,
                                              key="unit_price", help="Enter the unit price of the new product")
                 if st.button("Insert Product"):
                     try:
@@ -178,15 +195,15 @@ def main_product():
             # Search Product:
             elif product_menu == "Search":
                 st.subheader("Search Product")
-                product_id = st.number_input("Product ID", value=None, placeholder="Type a number...", step=1,
-                                             key="product_id",
-                                             help="Enter the unique numeric ID of the product you want to search")
+                list_product_ids = product.get_all_products()
+                product_id = st.selectbox("Product ID", options=list_product_ids, key="product_id",
+                                          help="Select the unique numeric ID of the product you want to search")
                 product_name = st.text_input("Product Name", key="product_name",
                                              help="Enter the name of the product you want to search")
                 category = st.text_input("Category", key="category",
                                          help="Enter the category of the product you want to search")
                 supplier_id = st.number_input("Supplier ID", value=None, placeholder="Type a number...", step=1,
-                                              key="supplier_id",
+                                              key="supplier_id", min_value=1,
                                               help="Enter the unique numeric ID of the supplier you want to search")
                 if st.button("Search", key="search"):
                     try:
@@ -206,19 +223,25 @@ def main_product():
             # Update Existing Product:
             elif product_menu == "Update":
                 st.subheader("Update Existing Product")
-                product_id = st.number_input("Product ID", value=None, placeholder="Type a number...", step=1,
-                                             key="product_id",
-                                             help="Enter the unique numeric ID of the product you want to update")
-                product_name = st.text_input("Product Name", key="product_name",
+                list_product_ids = product.get_all_products()
+                product_id = st.selectbox("Product ID", options=list_product_ids, key="product_id",
+                                          help="Select the unique numeric ID of the product you want to update")
+                product_details = product.product_details(product_id)
+                product_name = st.text_input("Product Name", value=product_details[0],
+                                             key="product_name",
                                              help="Enter the updated name of the product")
-                description = st.text_area("Description", key="description",
+                description = st.text_area("Description", value=product_details[1],
+                                           key="description",
                                            help="Enter the updated description of the product")
-                category = st.text_input("Category", key="category", help="Enter the updated category of the product")
-                supplier_id = st.number_input("Supplier ID", value=None, placeholder="Type a number...", step=1,
-                                              key="supplier_id",
-                                              help="Enter the updated unique numeric ID of the supplier")
-                unit_price = st.number_input("Unit Price", value=None, placeholder="Type your price...",
-                                             key="unit_price", help="Enter the updated unit price of the product")
+                category = st.text_input("Category", value=product_details[2],
+                                         key="category",
+                                         help="Enter the updated category of the product")
+                supplier_id = st.number_input("Supplier ID", value=product_details[3],
+                                              key="supplier_id", min_value=1,
+                                              step=1, help="Enter the updated unique numeric ID of the supplier")
+                unit_price = st.number_input("Unit Price", value=product_details[4],
+                                             key="unit_price",
+                                             min_value=0.0, help="Enter the updated unit price of the product")
                 if st.button("Update Product"):
                     try:
                         if validate_inputs(product_id, product_name, description, category, supplier_id, unit_price):
@@ -232,9 +255,9 @@ def main_product():
             # Delete Existing Product:
             elif product_menu == "Delete":
                 st.subheader("Delete Existing Product")
-                product_id = st.number_input("Product ID", value=None, placeholder="Type a number...", step=1,
-                                             key="product_id",
-                                             help="Enter the unique numeric ID of the product you want to delete")
+                list_product_ids = product.get_all_products()
+                product_id = st.selectbox("Product ID", options=list_product_ids, key="product_id",
+                                          help="Select the unique numeric ID of the product you want to delete")
                 product_details = product.product_details(product_id)
                 if product_details is not None:
                     product_name = st.text_input("Product Name", value=product_details[0], key="product_name",
