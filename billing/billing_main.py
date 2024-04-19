@@ -1,6 +1,11 @@
 import pandas as pd
 import streamlit as st
 import psycopg2
+from datetime import datetime
+
+
+
+
 
 from database_connection.database_connection import DatabaseConnection
 
@@ -46,12 +51,16 @@ def validate_inputs(purchase_id: int, supplier_id: int, gstin_number: str, produ
     if amount <= 0.0:
         st.warning("Please enter valid Amount")
         return False
-    if not purchase_date.strip():
+    if not purchase_date:
         st.warning("Please enter the Purchase Date")
         return False
     if not item_description.strip():
         st.warning("Please enter the Item")
         return False
+
+    # Convert purchase_date to string
+    purchase_date_str = purchase_date.strftime("%Y-%m-%d")
+    return True
 
 
 # Creating Billing Class:
@@ -64,7 +73,7 @@ class Billing:
                         amount: float, purchase_date: str, item_description: str):
         try:
             cursor = self.connection.cursor()
-            postgres_insert_query = """INSERT INTO Purchase (purchase_id, supplier_id, gstin_number, product_id, quantity, unit_price, total, discount, cgst, sgst, igst, amount, purchase_date, item_description) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
+            postgres_insert_query = """INSERT INTO Purchase (purchase_id, supplier_id, gstin_number, product_id, quantity, unit_price, total_price, discount, cgst, sgst, igst, amount, purchase_date, item_description) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
             record_to_insert = (
             purchase_id, supplier_id, gstin_number, product_id, quantity, unit_price, total_price, discount,
             cgst, sgst, igst, amount, purchase_date, item_description)
@@ -188,12 +197,37 @@ class Billing:
             cursor.execute("""SELECT * FROM Purchase WHERE purchase_id = %s""", (purchase_id,))
             purchase_record = cursor.fetchone()
             if purchase_record:
-                return purchase_record
+                return {
+                    "purchase_id": purchase_record[0],
+                    "supplier_id": purchase_record[1],
+                    "gstin_number": purchase_record[2],
+                    "product_id": purchase_record[3],
+                    "quantity": purchase_record[4],
+                    "unit_price": purchase_record[5],
+                    "total_price": purchase_record[6],
+                    "discount": purchase_record[7],
+                    "cgst": purchase_record[8],
+                    "sgst": purchase_record[9],
+                    "igst": purchase_record[10],
+                    "amount": purchase_record[11],
+                    "purchase_date": purchase_record[12],
+                    "item_description": purchase_record[13]
+                }
             else:
                 st.info("No records found in Purchase table")
                 return None
         except (Exception, psycopg2.Error) as error:
             st.error("Failed to fetch records from Purchase table: " + str(error))
+            return None
+
+    def get_products_for_supplier(self, supplier_id: int):
+        try:
+            cursor = self.connection.cursor()
+            cursor.execute("""SELECT product_id FROM Product WHERE supplier_id = %s""", (supplier_id,))
+            product_ids = cursor.fetchall()
+            return product_ids
+        except (Exception, psycopg2.Error) as error:
+            st.error("Failed to fetch product IDs for the supplier: " + str(error))
             return None
 
 
@@ -221,8 +255,14 @@ def main_billing():
                 get_gstin_number = billing.get_gstin_number(supplier_id) if supplier_id else None
                 gstin_number = st.text_input("GSTIN Number", value=get_gstin_number, key="gstin_number",
                                              help="Enter the existing GSTIN Number of the supplier", disabled=True)
-                product_id = st.number_input("Product ID", value=None, placeholder="Type a number...", step=1,
-                                             key="product_id", help="Enter the existing numeric ID of the product")
+
+                # Dynamically populate product ID based on the selected supplier ID
+                products_for_supplier = billing.get_products_for_supplier(supplier_id)
+                product_id_options = [product[0] for product in products_for_supplier] if products_for_supplier else []
+                product_id = st.selectbox("Product ID", options=product_id_options, key="product_id",
+                                          help="Select the product ID related to the selected supplier")
+
+                # Other input fields remain the same
                 quantity = st.number_input("Quantity", value=1, step=1, key="quantity",
                                            help="Enter the quantity of the product purchased")
                 product_price = billing.get_product_price(product_id) if product_id else None
@@ -376,12 +416,14 @@ def main_billing():
                     except Exception as e:
                         st.error("Failed to delete record from Purchase table: " + str(e))
 
-            # Close the database connection:
-            # billing.connection.close()
-            # st.info("Database connection closed successfully.")
+
+
+
 
         else:
             st.error("Failed to connect to the database.")
 
     except Exception as e:
         st.error("Failed to connect to the database: " + str(e))
+
+
