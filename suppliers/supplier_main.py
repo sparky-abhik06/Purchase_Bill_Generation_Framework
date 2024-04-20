@@ -244,7 +244,7 @@ def main_supplier():
                         columns = ["Supplier ID", "Supplier Name", "Landline Number", "Email", "Mobile Number",
                                    "Address", "City", "State/Province", "Country", "Postal Code", "GSTIN Number"]
                         df = pd.DataFrame(suppliers, columns=columns)
-                        st.dataframe(df)
+                        st.dataframe(df, hide_index=True)
                 except Exception as e:
                     st.error("An error occurred while fetching the records: " + str(e))
 
@@ -275,7 +275,7 @@ def main_supplier():
                             columns = ["Supplier ID", "Supplier Name", "Landline Number", "Email", "Mobile Number",
                                        "Address", "City", "State/Province", "Country", "Postal Code", "GSTIN Number"]
                             df = pd.DataFrame(suppliers, columns=columns)
-                            st.dataframe(df)
+                            st.dataframe(df, hide_index=True)
                         else:
                             st.warning("No supplier found with the given search criteria")
                     except Exception as e:

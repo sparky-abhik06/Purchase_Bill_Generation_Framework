@@ -188,7 +188,7 @@ def main_product():
                     if products is not None:
                         columns = ["Product ID", "Product Name", "Description", "Category", "Supplier ID", "Unit Price"]
                         df = pd.DataFrame(products, columns=columns)
-                        st.dataframe(df)
+                        st.dataframe(df, hide_index=True)
                 except Exception as e:
                     st.error("Failed to fetch records from Product table: " + str(e))
 
@@ -216,7 +216,7 @@ def main_product():
                             columns = ["Product ID", "Product Name", "Description", "Category", "Supplier ID",
                                        "Unit Price"]
                             df = pd.DataFrame(products, columns=columns)
-                            st.dataframe(df)
+                            st.dataframe(df, hide_index=True)
                     except Exception as e:
                         st.error("Failed to fetch records from Product table: " + str(e))
 
