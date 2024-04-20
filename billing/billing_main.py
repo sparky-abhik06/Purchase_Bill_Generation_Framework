@@ -328,7 +328,7 @@ def main_billing():
                                    "Total Price", "Discount", "CGST", "SGST", "IGST", "Amount", "Purchase Date",
                                    "Item Description"]
                         df = pd.DataFrame(purchase_records, columns=columns)
-                        st.dataframe(df)
+                        st.dataframe(df, hide_index=True)
                 except Exception as e:
                     st.error("Failed to fetch records from Purchase table: " + str(e))
 
@@ -406,7 +406,7 @@ def main_billing():
                                        "Total Price", "Discount", "CGST", "SGST", "IGST", "Amount", "Purchase Date",
                                        "Item Description"]
                             df = pd.DataFrame(purchase_records, columns=columns)
-                            st.dataframe(df)
+                            st.dataframe(df, hide_index=True)
                     except Exception as e:
                         st.error("Failed to fetch records from Purchase table: " + str(e))
 
