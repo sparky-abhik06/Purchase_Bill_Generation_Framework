@@ -1,7 +1,10 @@
 import pandas as pd
 import streamlit as st
 import psycopg2
+import pdfkit
 from datetime import datetime
+from jinja2 import Environment, FileSystemLoader, select_autoescape
+
 
 from database_connection.database_connection import DatabaseConnection
 
@@ -258,6 +261,52 @@ class Billing:
             st.error("Failed to fetch product IDs for the supplier: " + str(error))
             return None
 
+    def generate_tax_invoice_per_product(self, purchase_id: int):
+        try:
+            cursor = self.connection.cursor()
+            cursor.execute("""SELECT * FROM Purchase WHERE purchase_id = %s""", (purchase_id,))
+            purchase_record = cursor.fetchone()
+            if purchase_record is not None:
+                supplier_id = purchase_record[1]
+                gstin_number = purchase_record[2]
+                product_id = purchase_record[3]
+                quantity = purchase_record[4]
+                unit_price = purchase_record[5]
+                gross_amount = purchase_record[6]
+                discount = purchase_record[7]
+                cgst = purchase_record[8]
+                sgst = purchase_record[9]
+                igst = purchase_record[10]
+                amount = purchase_record[11]
+                purchase_date = purchase_record[12]
+                cursor.execute("""SELECT * FROM Supplier WHERE supplier_id = %s""", (supplier_id,))
+                supplier_record = cursor.fetchone()
+                if supplier_record is not None:
+                    supplier_name = supplier_record[1]
+                    supplier_mobile = supplier_record[4]
+                    supplier_address = supplier_record[5]
+                    supplier_city = supplier_record[6]
+                    supplier_state = supplier_record[7]
+                    supplier_country = supplier_record[8]
+                    supplier_pincode = supplier_record[9]
+                cursor.execute("""SELECT * FROM Product WHERE product_id = %s""", (product_id,))
+                product_record = cursor.fetchone()
+                if product_record is not None:
+                    product_name = product_record[1]
+            # Saving in a dictionary:
+            address = supplier_address + ", " + supplier_city + "\n" + supplier_state + ", " + supplier_country + " - " + supplier_pincode
+            tax_invoice = {"invoice_no": purchase_id, "supplier_name": supplier_name,
+                           "supplier_phone": supplier_mobile,
+                           "supplier_address": address, "supplier_gstin": gstin_number,
+                           "product_name": product_name,
+                           "quantity": quantity, "gross_amount": gross_amount, "discount": discount, "cgst": cgst,
+                           "sgst": sgst,
+                           "igst": igst, "total": amount, "invoice_date": purchase_date}
+            return tax_invoice
+        except (Exception, psycopg2.Error) as error:
+            st.error("Failed to fetch records from Purchase table: " + str(error))
+            return None
+
 
 # Streamlit UI for Billing Management:
 def main_billing():
@@ -268,7 +317,8 @@ def main_billing():
     try:
         billing = Billing(st.session_state.db_connection)
         if billing.connection is not None:
-            billing_menu = st.selectbox("Billing Menu", ["Insert", "Show All", "Search", "Update", "Delete"],
+            billing_menu = st.selectbox("Billing Menu",
+                                        ["Insert", "Show All", "Search", "Update", "Delete", "Generate Tax Invoice"],
                                         key="billing_menu",
                                         help="Select the operation you want to perform on the Purchase table")
 
@@ -440,6 +490,53 @@ def main_billing():
                         billing.delete_purchase(purchase_id)
                     except Exception as e:
                         st.error("Failed to delete record from Purchase table: " + str(e))
+
+            # Generate Tax Invoice:
+            elif billing_menu == "Generate Tax Invoice":
+                st.subheader("Generate Tax Invoice")
+                list_purchase_ids = billing.get_purchase_ids()
+                purchase_id = st.selectbox("Purchase ID", options=list_purchase_ids, key="purchase_id",
+                                           help="Select the numeric ID of the purchase record you want to generate tax invoice")
+                tax_invoice = billing.generate_tax_invoice_per_product(purchase_id) if purchase_id else None
+                if tax_invoice is not None:
+                    if st.button("Generate Tax Invoice"):
+                        try:
+                            env = Environment(loader=FileSystemLoader('.'),
+                                              autoescape=select_autoescape(['html', 'xml']))
+                            template = env.get_template("tax_invoice_template.html")
+
+                            total_tax = tax_invoice["cgst"] + tax_invoice["sgst"] + tax_invoice["igst"]
+                            total_amount = tax_invoice["total"]
+
+                            tax_invoice_template = template.render(supplier_name=tax_invoice["supplier_name"],
+                                                                   supplier_address=tax_invoice["supplier_address"],
+                                                                   supplier_phone=tax_invoice["supplier_phone"],
+                                                                   supplier_gstin=tax_invoice["supplier_gstin"],
+                                                                   invoice_no=tax_invoice["invoice_no"],
+                                                                   invoice_date=tax_invoice["invoice_date"],
+                                                                   index=1,
+                                                                   item_product_name=tax_invoice["product_name"],
+                                                                   item_quantity=tax_invoice["quantity"],
+                                                                   item_gross_amount=tax_invoice["gross_amount"],
+                                                                   item_discount=tax_invoice["discount"],
+                                                                   item_cgst=tax_invoice["cgst"], item_sgst=tax_invoice["sgst"],
+                                                                   item_igst=tax_invoice["igst"],
+                                                                   item_total=tax_invoice["total"],
+                                                                   total_tax=total_tax,
+                                                                   total_amount=total_amount,
+                                                                   billing_date=datetime.now().strftime("%d-%m-%Y"))
+                            # with open("tax_invoice.html", "w") as file:
+                            #     file.write(tax_invoice_template)
+                            st.success("Tax Invoice generated successfully.")
+                            st.markdown(tax_invoice_template, unsafe_allow_html=True)
+
+                            # Convert the HTML to PDF and download the file:
+                            tax_invoice = pdfkit.from_string(tax_invoice_template, False, configuration=pdfkit.configuration(wkhtmltopdf=r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe"))
+
+                            st.download_button("⬇️ Tax Invoice", tax_invoice, "tax_invoice.pdf",
+                                               "application/pdf")
+                        except Exception as e:
+                            st.error("Failed to generate tax invoice: " + str(e))
 
             # Close the database connection:
             # supplier.connection.close()
