@@ -531,9 +531,9 @@ def main_billing():
                             st.markdown(tax_invoice_template, unsafe_allow_html=True)
 
                             # Convert the HTML to PDF and download the file:
-                            tax_invoice = pdfkit.from_string(tax_invoice_template, False, configuration=pdfkit.configuration(wkhtmltopdf=r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe"))
+                            tax_invoice_pdf = pdfkit.from_string(tax_invoice_template, False, configuration=pdfkit.configuration(wkhtmltopdf=r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe"))
 
-                            st.download_button("⬇️ Tax Invoice", tax_invoice, "tax_invoice.pdf",
+                            st.download_button("⬇️ Tax Invoice", tax_invoice_pdf, f"{tax_invoice['invoice_no']}_tax_invoice_{tax_invoice['invoice_date']}.pdf",
                                                "application/pdf")
                         except Exception as e:
                             st.error("Failed to generate tax invoice: " + str(e))
