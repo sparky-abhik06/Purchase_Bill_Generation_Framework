@@ -3,7 +3,8 @@ import streamlit as st
 import psycopg2
 import pdfkit
 from datetime import datetime
-from jinja2 import Template, Environment, FileSystemLoader, select_autoescape
+from jinja2 import Environment, FileSystemLoader, select_autoescape
+
 
 from database_connection.database_connection import DatabaseConnection
 
@@ -271,6 +272,7 @@ class Billing:
                 product_id = purchase_record[3]
                 quantity = purchase_record[4]
                 unit_price = purchase_record[5]
+                gross_amount = purchase_record[6]
                 discount = purchase_record[7]
                 cgst = purchase_record[8]
                 sgst = purchase_record[9]
@@ -297,7 +299,7 @@ class Billing:
                            "supplier_phone": supplier_mobile,
                            "supplier_address": address, "supplier_gstin": gstin_number,
                            "product_name": product_name,
-                           "quantity": quantity, "unit_price": unit_price, "discount": discount, "cgst": cgst,
+                           "quantity": quantity, "gross_amount": gross_amount, "discount": discount, "cgst": cgst,
                            "sgst": sgst,
                            "igst": igst, "total": amount, "invoice_date": purchase_date}
             return tax_invoice
@@ -515,7 +517,7 @@ def main_billing():
                                                                    index=1,
                                                                    item_product_name=tax_invoice["product_name"],
                                                                    item_quantity=tax_invoice["quantity"],
-                                                                   item_unit_price=tax_invoice["unit_price"],
+                                                                   item_gross_amount=tax_invoice["gross_amount"],
                                                                    item_discount=tax_invoice["discount"],
                                                                    item_cgst=tax_invoice["cgst"], item_sgst=tax_invoice["sgst"],
                                                                    item_igst=tax_invoice["igst"],
@@ -523,15 +525,15 @@ def main_billing():
                                                                    total_tax=total_tax,
                                                                    total_amount=total_amount,
                                                                    billing_date=datetime.now().strftime("%d-%m-%Y"))
-                            with open("tax_invoice.html", "w") as file:
-                                file.write(tax_invoice_template)
+                            # with open("tax_invoice.html", "w") as file:
+                            #     file.write(tax_invoice_template)
                             st.success("Tax Invoice generated successfully.")
                             st.markdown(tax_invoice_template, unsafe_allow_html=True)
 
                             # Convert the HTML to PDF and download the file:
                             tax_invoice = pdfkit.from_string(tax_invoice_template, False)
 
-                            st.download_button("⬇️ Download Tax Invoice", tax_invoice, "tax_invoice.pdf",
+                            st.download_button("⬇️ Tax Invoice", tax_invoice, "tax_invoice.pdf",
                                                "application/pdf")
                         except Exception as e:
                             st.error("Failed to generate tax invoice: " + str(e))
