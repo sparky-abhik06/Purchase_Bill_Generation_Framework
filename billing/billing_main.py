@@ -1,3 +1,5 @@
+import os
+
 import pandas as pd
 import streamlit as st
 import psycopg2
@@ -537,11 +539,17 @@ def main_billing():
                             executable_url = "https://github.com/sparky-abhik06/Purchase_Bill_Generation_Framework/raw/main/wkhtmltopdf.exe"
 
                             # Download the executable
-                            with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
-                                response = requests.get(executable_url)
-                                tmp_file.write(response.content)
-                                executable_path = tmp_file.name
-                            tax_invoice_pdf = pdfkit.from_string(tax_invoice_template, False, configuration=pdfkit.configuration(wkhtmltopdf=executable_path))
+                            # with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+                            #     response = requests.get(executable_url)
+                            #     tmp_file.write(response.content)
+                            #     executable_path = tmp_file.name
+
+                            # Path to wkhtmltopdf binary
+                            wkhtmltopdf_path = os.path.join(os.getcwd(), 'wkhtmltopdf', 'bin', 'wkhtmltopdf')
+                            if not os.path.isfile(wkhtmltopdf_path):
+                                raise FileNotFoundError("wkhtmltopdf executable not found at %s" % wkhtmltopdf_path)
+                            # Configure pdfkit to use the binary
+                            tax_invoice_pdf = pdfkit.from_string(tax_invoice_template, False, configuration=pdfkit.configuration(wkhtmltopdf=wkhtmltopdf_path))
 
                             pdf_filename = f"{tax_invoice['invoice_no']}_tax_invoice_{tax_invoice['invoice_date']}.pdf"
                             st.download_button("⬇️ Tax Invoice", tax_invoice_pdf, pdf_filename,
