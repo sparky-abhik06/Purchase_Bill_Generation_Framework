@@ -1,9 +1,5 @@
 # Billing Management System
-* **_First_**, you need to install the required packages by running the following command:
-  ```bash
-  pip install -r requirements.txt
-  ```
-* **_Second_**, you need to create a postgres database and create 3 tables:
+* **_First_**, you need to create a postgres database and create 3 tables:
   * **Supplier**
     ```sql
       CREATE TABLE Supplier (
@@ -56,4 +52,24 @@
 * **_Third_**, you need to create a `.env` file in the root directory and add the following environment variables:
   ```env
   DATABASE_URL=postgres://<username>:<password>@localhost:5432/<database_name>
+  ```
+* **_github_**, you need to clone the repository by running the following command:
+  ```bash
+  git clone https://github.com/sparky-abhik06/Purchase_Bill_Generation_Framework.git
+  ```
+* **_Fourth_**, you need to create virtual environment by running the following command:
+  ```bash
+  python -m venv venv
+  ```
+* **_Fifth_**, you need to activate the virtual environment by running the following command:
+  ```bash
+    source venv/bin/activate
+  ```
+* **_Sixth_**, you need to install the dependencies by running the following command:
+  ```bash
+    pip install -r requirements.txt
+  ```
+* **_Seventh_**, you need to run the following command to start the server:
+  ```bash
+    streamlit run app.py
   ```
