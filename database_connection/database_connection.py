@@ -1,12 +1,17 @@
 import psycopg2
 import logging
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+database_url = os.getenv('DATABASE_URL')
 
 
 # Function to connect to the PostgreSQL database
 class DatabaseConnection:
     def __init__(self):
         # Neon.tech postgresql database connection string:
-        self.db_url = "postgresql://texas_db_owner:Z09LBvPoEzRb@ep-restless-mouse-a151ytfv.ap-southeast-1.aws.neon.tech/texas_db?sslmode=require"
+        self.db_url = database_url
 
     def connect(self):
         try:
